@@ -1,0 +1,35 @@
+# secretos
+.env
+.env.local
+*.key
+
+# sesion de whatsapp: contiene credenciales de la cuenta, NUNCA se sube
+auth_info_baileys/
+bot/auth_info_baileys/
+
+# base de datos y estado local
+*.db
+*.db-wal
+*.db-shm
+var/
+data/runtime/
+
+# entregas de los participantes (codigo de terceros, no va al repo)
+submissions/
+
+# node
+node_modules/
+npm-debug.log*
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# sistema
+.DS_Store
+Thumbs.db
