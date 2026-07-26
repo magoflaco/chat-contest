@@ -18,6 +18,7 @@ include = ["contest*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+markers = ["slow: tests que tardan varios segundos (ciclos infinitos, limites de tiempo)"]
 
 [tool.ruff]
 line-length = 110
