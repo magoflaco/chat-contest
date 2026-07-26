@@ -1,0 +1,34 @@
+slug: islas
+titulo: El mapa del tesoro
+dificultad: 4
+tags: [grafos, bfs, componentes-conexas, grillas]
+autor: Club de Programacion
+limites:
+  tiempo_ms: 4000
+  memoria_mb: 256
+validacion:
+  tipo: tokens
+fuente:
+  tipo: original
+pistas:
+  - "Cada isla es una componente conexa de la grilla. Recorre celda por celda y cuando encontres tierra sin visitar, arranca una exploracion desde ahi."
+  - "Si usas recursion, con 1000x1000 celdas te vas a pasar del limite de recursion de Python. Usa una pila explicita o una cola."
+editorial: |
+  Cada isla es una componente conexa de celdas de tierra conectadas en cuatro
+  direcciones. El esquema es:
+
+      para cada celda (i, j):
+          si es tierra y no fue visitada:
+              islas += 1
+              recorrer toda su componente marcandola como visitada
+
+  El recorrido puede ser BFS con una `deque` o DFS con una pila explicita. Lo que
+  **no** conviene en Python es DFS recursivo: con una grilla de 1000x1000 toda de
+  tierra, la recursion llega a un millon de niveles y revienta con
+  `RecursionError` mucho antes del limite de tiempo. Ese es el error que mas veces
+  aparece en este problema.
+
+  Tambien conviene leer la grilla como lista de strings y no convertirla a lista de
+  listas de caracteres: ahorra memoria y tiempo.
+
+  Complejidad: O(F x C), cada celda entra y sale de la cola una sola vez.

@@ -1,0 +1,33 @@
+slug: suma-de-digitos
+titulo: La caja fuerte de la abuela
+dificultad: 1
+tags: [aritmetica, implementacion, ciclos]
+autor: Club de Programacion
+limites:
+  tiempo_ms: 1000
+  memoria_mb: 64
+validacion:
+  tipo: tokens
+fuente:
+  tipo: original
+pistas:
+  - "Podes recorrer los digitos sin convertir a texto, usando el resto y la division entera por 10."
+  - "Repetir el proceso hasta quedarte con un solo digito es un ciclo while, no una recursion complicada."
+editorial: |
+  Sumar los digitos de un numero se hace con el resto de dividir por 10 (te da el
+  ultimo digito) y la division entera por 10 (te saca ese digito):
+
+      s = 0
+      while n > 0:
+          s += n % 10
+          n //= 10
+
+  Como hay que repetir hasta llegar a un solo digito, envolvemos eso en otro while
+  que corre mientras el numero tenga mas de un digito. Cada pasada reduce mucho el
+  numero, asi que con N hasta 10^18 se hacen a lo sumo 3 o 4 pasadas.
+
+  Complejidad: O(log N) por pasada, con una cantidad constante de pasadas.
+
+  Al margen: el resultado es siempre 1 + (N-1) mod 9 para N > 0, que es la llamada
+  raiz digital. Se puede resolver en una linea, pero el ciclo es mas claro y entra
+  igual de comodo.

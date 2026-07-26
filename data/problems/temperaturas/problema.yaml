@@ -1,0 +1,29 @@
+slug: temperaturas
+titulo: El termometro del aula
+dificultad: 1
+tags: [arreglos, condicionales, implementacion]
+autor: Club de Programacion
+limites:
+  tiempo_ms: 1000
+  memoria_mb: 64
+validacion:
+  tipo: tokens
+fuente:
+  tipo: original
+pistas:
+  - "Necesitas comparar cada elemento con el anterior, asi que recorre desde la posicion 1."
+  - "Alcanza con un solo recorrido y dos contadores. No hace falta ordenar nada."
+editorial: |
+  Es un recorrido simple comparando cada medicion con la anterior. Se arranca en el
+  indice 1 (la primera no tiene anterior con que compararse) y se cuenta cuantas
+  veces sube y cuantas baja. Las iguales no cuentan para ninguno de los dos.
+
+      subidas = bajadas = 0
+      for i in range(1, n):
+          if t[i] > t[i-1]: subidas += 1
+          elif t[i] < t[i-1]: bajadas += 1
+
+  Complejidad: O(N) tiempo, O(N) memoria (o O(1) si se procesa mientras se lee).
+
+  El error tipico es arrancar el ciclo en 0 y salirse del arreglo, o contar las
+  temperaturas iguales como subida.

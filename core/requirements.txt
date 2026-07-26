@@ -1,0 +1,7 @@
+# el core corre con muy poco a proposito: cuanto menos haya que instalar,
+# mas facil es que alguien del club levante el proyecto en su maquina.
+fastapi>=0.115
+uvicorn[standard]>=0.32
+pydantic>=2.9
+PyYAML>=6.0
+pytest>=8.3

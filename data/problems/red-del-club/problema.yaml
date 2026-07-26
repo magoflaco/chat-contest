@@ -1,0 +1,48 @@
+slug: red-del-club
+titulo: La red del club
+dificultad: 5
+tags: [grafos, dijkstra, cola-de-prioridad, caminos-minimos]
+autor: Club de Programacion
+limites:
+  tiempo_ms: 5000
+  memoria_mb: 256
+validacion:
+  tipo: tokens
+fuente:
+  tipo: original
+pistas:
+  - "Es un camino minimo con pesos no negativos. El algoritmo que buscas empieza con D."
+  - "Con M hasta 300000 necesitas la version con cola de prioridad (heapq), no la cuadratica."
+  - "Cuidado con las aristas repetidas entre el mismo par de nodos: quedate con la mas barata o simplemente agregalas todas."
+editorial: |
+  Camino minimo con pesos no negativos: Dijkstra con cola de prioridad.
+
+  Se mantiene `dist[]` inicializado en infinito salvo el origen en 0, y un heap con
+  pares `(distancia, nodo)`. En cada paso se saca el nodo mas cercano sin procesar y
+  se relajan sus aristas.
+
+      import heapq
+      dist = [INF] * (n + 1)
+      dist[origen] = 0
+      heap = [(0, origen)]
+      while heap:
+          d, u = heapq.heappop(heap)
+          if d > dist[u]:
+              continue          # entrada vieja, ya la mejoramos
+          for v, peso in grafo[u]:
+              nd = d + peso
+              if nd < dist[v]:
+                  dist[v] = nd
+                  heapq.heappush(heap, (nd, v))
+
+  Detalles que hacen la diferencia:
+
+  - La linea `if d > dist[u]: continue` es la que evita procesar entradas obsoletas.
+    Sin ella el algoritmo sigue siendo correcto pero se vuelve mucho mas lento.
+  - Hay que leer la entrada con `sys.stdin.buffer.read().split()`. Con M = 300000
+    lineas, `input()` en un ciclo es demasiado lento y da TLE aunque el algoritmo
+    este bien.
+  - Puede haber aristas repetidas y el grafo puede ser disconexo: si el destino
+    quedo en infinito, la respuesta es -1.
+
+  Complejidad: O((N + M) log N).

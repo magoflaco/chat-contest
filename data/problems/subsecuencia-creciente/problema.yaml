@@ -1,0 +1,54 @@
+slug: subsecuencia-creciente
+titulo: La torre de cajas
+dificultad: 5
+tags: [programacion-dinamica, busqueda-binaria, lis]
+autor: Club de Programacion
+limites:
+  tiempo_ms: 4000
+  memoria_mb: 256
+validacion:
+  tipo: tokens
+fuente:
+  tipo: original
+subtareas:
+  - id: s1
+    peso: 40
+    descripcion: "N <= 2000 (alcanza una solucion cuadratica)"
+    semillas: "1-2,5-8"
+  - id: s2
+    peso: 60
+    descripcion: "N <= 300000"
+    semillas: "3-4,9-15"
+pistas:
+  - "El problema es la subsecuencia estrictamente creciente mas larga. La version O(N^2) es directa; la que entra en tiempo no lo es."
+  - "Manten una lista donde la posicion k guarda el menor final posible de una subsecuencia creciente de largo k+1. Esa lista siempre queda ordenada."
+  - "Con la lista ordenada, ubicar donde va cada elemento nuevo es una busqueda binaria. Mira bisect_left en la biblioteca estandar."
+editorial: |
+  Es la subsecuencia estrictamente creciente mas larga (LIS), disfrazada de cajas.
+
+  La version O(N^2) con `dp[i] = 1 + max(dp[j])` para `j < i` con `a[j] < a[i]`
+  resuelve la subtarea 1 pero se muere con N = 300000.
+
+  La solucion que entra usa el truco clasico: mantener una lista `colas` donde
+  `colas[k]` es el **menor valor posible** en el que puede terminar una subsecuencia
+  creciente de largo `k+1`. Esa lista siempre esta ordenada, asi que para cada
+  elemento nuevo se busca con `bisect_left` la primera posicion cuyo valor sea mayor
+  o igual, y se pisa. Si no hay ninguna, el elemento extiende la lista.
+
+      import bisect
+      colas = []
+      for x in a:
+          i = bisect.bisect_left(colas, x)
+          if i == len(colas):
+              colas.append(x)
+          else:
+              colas[i] = x
+      print(len(colas))
+
+  Ojo con un detalle importante: `colas` **no** es una LIS valida, solo su largo es
+  correcto. Reconstruir la subsecuencia real necesita guardar predecesores aparte.
+
+  `bisect_left` da la version estrictamente creciente; `bisect_right` daria la no
+  decreciente. Confundirlas es el error mas comun.
+
+  Complejidad: O(N log N) tiempo, O(N) memoria.

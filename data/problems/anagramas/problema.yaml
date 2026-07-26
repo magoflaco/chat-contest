@@ -1,0 +1,34 @@
+slug: anagramas
+titulo: El taller de palabras
+dificultad: 2
+tags: [strings, conteo, diccionarios]
+autor: Club de Programacion
+limites:
+  tiempo_ms: 2000
+  memoria_mb: 128
+validacion:
+  tipo: tokens
+fuente:
+  tipo: original
+pistas:
+  - "Dos palabras son anagramas si tienen exactamente las mismas letras con las mismas cantidades."
+  - "Si a cada palabra le asignas una clave que sea la misma para todos sus anagramas, el problema se vuelve contar repetidos en un diccionario."
+editorial: |
+  Dos palabras son anagramas si su multiconjunto de letras coincide. La forma
+  estandar de aprovechar eso es asignarle a cada palabra una **clave canonica** que
+  sea igual para todos sus anagramas. La mas simple es ordenar sus letras:
+
+      clave = "".join(sorted(palabra))
+
+  Con eso se agrupan las palabras en un diccionario `clave -> cantidad`, y la
+  respuesta es el tamano del grupo mas grande.
+
+      from collections import Counter
+      grupos = Counter("".join(sorted(p)) for p in palabras)
+      print(max(grupos.values()))
+
+  Complejidad: O(N x L log L), donde L es el largo de las palabras. Con L <= 20 el
+  ordenamiento es despreciable.
+
+  Alternativa sin ordenar: usar como clave la tupla de 26 contadores de letras. Es
+  O(N x L) pero en Python suele salir mas lento por el costo de armar la tupla.

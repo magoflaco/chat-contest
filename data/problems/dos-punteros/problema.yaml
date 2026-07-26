@@ -1,0 +1,30 @@
+slug: dos-punteros
+titulo: Las mesas del comedor
+dificultad: 3
+tags: [dos-punteros, ordenamiento, greedy]
+autor: Club de Programacion
+limites:
+  tiempo_ms: 3000
+  memoria_mb: 256
+validacion:
+  tipo: tokens
+fuente:
+  tipo: original
+pistas:
+  - "Si ordenas los pesos, el mas liviano y el mas pesado son los unicos candidatos interesantes para compartir mesa."
+  - "Un puntero al principio y otro al final, moviendolos hacia adentro, resuelve todo en un solo recorrido."
+editorial: |
+  Un greedy con dos punteros. Se ordenan los pesos. Se ponen dos punteros, uno en el
+  mas liviano (`i`) y otro en el mas pesado (`j`). El mas pesado tiene que sentarse
+  si o si, asi que la unica decision es si le podemos dar compania: si
+  `p[i] + p[j] <= L`, van juntos y avanzamos los dos punteros; si no, el pesado va
+  solo y solo retrocede `j`. En ambos casos se suma una mesa.
+
+  Por que es optimo: si el mas pesado puede compartir con alguien, conviene que sea
+  con el mas liviano, porque cualquier otro que entre con el mas pesado tambien
+  entraria con alguien mas liviano despues. Este intercambio nunca empeora la
+  solucion, que es el argumento estandar para justificar un greedy.
+
+  Complejidad: O(N log N) por el ordenamiento, y O(N) el recorrido.
+
+  Es el mismo problema que "Boats to Save People", muy comun en entrenamientos.

@@ -1,0 +1,26 @@
+slug: racha-mas-larga
+titulo: La racha del equipo
+dificultad: 2
+tags: [arreglos, strings, un-recorrido]
+autor: Club de Programacion
+limites:
+  tiempo_ms: 2000
+  memoria_mb: 128
+validacion:
+  tipo: tokens
+fuente:
+  tipo: original
+pistas:
+  - "Guarda dos cosas mientras recorres: el largo de la racha actual y el mejor largo visto."
+  - "Cuando el resultado cambia, la racha actual vuelve a 1, no a 0."
+editorial: |
+  Clasico de un solo recorrido. Se mantiene `actual` (largo de la racha que viene
+  corriendo) y `mejor` (la mas larga vista hasta ahora). Al pasar a una posicion
+  nueva, si el caracter es igual al anterior se incrementa `actual`, y si no, se
+  reinicia en 1. En cada paso se actualiza `mejor`.
+
+  El detalle que hay que cuidar es el desempate: si hay varias rachas del mismo
+  largo maximo, pide la primera. Como solo actualizamos cuando `actual > mejor`
+  (estrictamente mayor), la primera gana sola.
+
+  Complejidad: O(N) tiempo, O(1) memoria extra.

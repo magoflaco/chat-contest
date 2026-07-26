@@ -1,0 +1,33 @@
+slug: caminos-grilla
+titulo: El robot repartidor
+dificultad: 4
+tags: [programacion-dinamica, grillas, modulo]
+autor: Club de Programacion
+limites:
+  tiempo_ms: 3000
+  memoria_mb: 256
+validacion:
+  tipo: tokens
+fuente:
+  tipo: original
+pistas:
+  - "La cantidad de formas de llegar a una celda es la suma de las formas de llegar a la de arriba y a la de la izquierda."
+  - "Los numeros crecen muchisimo. Aplica el modulo en cada paso, no al final."
+editorial: |
+  DP sobre la grilla. Si `dp[i][j]` es la cantidad de caminos hasta la celda `(i,j)`:
+
+      dp[0][0] = 1  (si no esta bloqueada)
+      dp[i][j] = 0                        si la celda esta bloqueada
+      dp[i][j] = dp[i-1][j] + dp[i][j-1]  si no
+
+  Dos cosas importantes:
+
+  1. **El modulo va en cada paso.** Si se aplica solo al final, los enteros crecen
+     tanto que la solucion se vuelve lentisima (Python soporta enteros grandes, asi
+     que no se rompe: se arrastra). Este es el error tipico.
+  2. Alcanza con **una sola fila** de memoria, porque `dp[i][j]` depende de la fila
+     anterior y de la celda de la izquierda de la misma fila. Se puede actualizar en
+     el lugar: `fila[j] = (fila[j] + fila[j-1]) % MOD`, donde `fila[j]` antes de la
+     asignacion todavia tiene el valor de la fila de arriba.
+
+  Complejidad: O(F x C) tiempo, O(C) memoria.
