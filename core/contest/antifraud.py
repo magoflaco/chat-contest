@@ -32,7 +32,7 @@ from .config import config
 
 #: modulos que no tienen ningun uso legitimo resolviendo un problema de olimpiada
 MODULOS_PROHIBIDOS = frozenset({
-    "socket", "http", "urllib", "urllib2", "urllib3", "requests", "httpx", "ftplib",
+    "io", "socket", "http", "urllib", "urllib2", "urllib3", "requests", "httpx", "ftplib",
     "smtplib", "telnetlib", "asyncio", "selectors", "ssl", "xmlrpc",
     "subprocess", "multiprocessing", "ctypes", "cffi", "mmap", "signal", "pty", "tty",
     "shutil", "tempfile", "pathlib", "glob", "fileinput", "sqlite3", "dbm", "shelve",
