@@ -74,6 +74,13 @@ class ConfigJuez:
     timeout_ms: int = field(default_factory=lambda: _entero("JUDGE_TIMEOUT_MS", 5000))
     memoria_mb: int = field(default_factory=lambda: _entero("JUDGE_MEMORY_MB", 256))
     max_fuente_bytes: int = field(default_factory=lambda: _entero("JUDGE_MAX_SOURCE_BYTES", 65536))
+    #: multiplica el limite de tiempo de TODOS los problemas.
+    #:
+    #: Los limites de cada problema se calibran en la maquina de quien lo escribe,
+    #: que casi siempre es mas rapida que el servidor. Sin esto, una solucion
+    #: correcta puede recibir TLE en produccion y el chico no entiende por que.
+    #: Se mide con `python -m contest.cli calibrar` y se pone en el .env.
+    factor_tiempo: float = field(default_factory=lambda: _decimal("JUDGE_TIME_FACTOR", 1.0))
     # margen que le damos al contenedor por encima del limite del problema,
     # para que el overhead de arranque de python no se cuente como TLE del alumno
     overhead_ms: int = 3000

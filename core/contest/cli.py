@@ -6,6 +6,7 @@
     python -m contest.cli ronda        crea y publica una ronda ahora
     python -m contest.cli tabla        imprime el ranking en la terminal
     python -m contest.cli chequeo      diagnostico de la instalacion
+    python -m contest.cli calibrar     mide el factor de tiempo de esta maquina
 """
 
 from __future__ import annotations
@@ -91,6 +92,72 @@ def _probar_todo(args) -> int:
 
     print(f"\n{len(banco) - fallos}/{len(banco)} problemas correctos.")
     return 1 if fallos else 0
+
+
+def _calibrar(args) -> int:
+    """Mide cuanto mas lenta es esta maquina y sugiere JUDGE_TIME_FACTOR.
+
+    Los limites de tiempo de cada problema los pone quien lo escribe, en su propia
+    maquina. El servidor suele ser bastante mas lento, y sin corregir eso una
+    solucion correcta recibe TLE en produccion sin motivo.
+
+    Se corre cada solucion de referencia y se compara su tiempo contra el limite
+    declarado. El factor sugerido deja a la mas lenta usando como mucho la mitad
+    de su limite, que es el margen que le pedimos a los autores.
+    """
+    banco = problems.banco(refrescar=True)
+    if not banco:
+        print("el banco esta vacio")
+        return 1
+
+    print(f"midiendo {len(banco)} problemas con el backend '{config.juez.backend}'...\n")
+    print(f"{'problema':<32} {'tardo':>8} {'limite':>8} {'uso':>7}")
+    print("-" * 60)
+
+    peor = 0.0
+    peor_slug = ""
+    medidos = 0
+
+    for slug, p in sorted(banco.items()):
+        referencia = p.solucion_referencia()
+        if not referencia:
+            continue
+        try:
+            r = judge.juzgar(referencia, p)
+        except judge.ErrorJuez as e:
+            print(f"{slug:<32} error: {e}")
+            continue
+
+        if r.veredicto == "TLE":
+            # no sabemos cuanto tarda de verdad, solo que no entro
+            print(f"{slug:<32} {'TLE':>8} {p.tiempo_ms:>7}ms {'>100%':>7}")
+            uso = 1.5                       # estimacion conservadora
+        else:
+            uso = r.tiempo_ms / p.tiempo_ms if p.tiempo_ms else 0
+            print(f"{slug:<32} {r.tiempo_ms:>6}ms {p.tiempo_ms:>7}ms {uso:>6.0%}")
+
+        medidos += 1
+        if uso > peor:
+            peor, peor_slug = uso, slug
+
+    if not medidos:
+        print("\nno se pudo medir nada")
+        return 1
+
+    # queremos que el peor caso use como mucho el 50% de su limite
+    sugerido = max(1.0, round(peor / 0.5 * 2) / 2)
+
+    print("-" * 60)
+    print(f"\nel mas ajustado es '{peor_slug}', usando el {peor:.0%} de su limite.")
+    print(f"factor actual: {config.juez.factor_tiempo}")
+
+    if sugerido > config.juez.factor_tiempo:
+        print(f"\nponé esto en el .env de esta maquina:\n\n    JUDGE_TIME_FACTOR={sugerido}\n")
+        print("asi la solucion mas lenta usa como mucho la mitad de su limite, y a")
+        print("nadie le da TLE por tener una implementacion un poco menos optimizada.")
+    else:
+        print("\nel factor actual alcanza, no hace falta cambiarlo.")
+    return 0
 
 
 def _ronda(args) -> int:
@@ -194,6 +261,7 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("validar", help="valida el banco de problemas").set_defaults(fn=_validar)
     sub.add_parser("tabla", help="imprime el ranking").set_defaults(fn=_tabla)
     sub.add_parser("chequeo", help="diagnostico de la instalacion").set_defaults(fn=_chequeo)
+    sub.add_parser("calibrar", help="mide JUDGE_TIME_FACTOR para esta maquina").set_defaults(fn=_calibrar)
 
     p_probar = sub.add_parser("probar-todo", help="corre las soluciones de referencia")
     p_probar.add_argument("--slug", default="", help="probar solo este problema")

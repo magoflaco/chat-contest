@@ -113,10 +113,14 @@ def _ejecutar(fuente: Path, problema: Problema, casos, trabajo: Path, solo_sampl
     # usamos PurePosixPath y afuera la ruta nativa.
     raiz = PurePosixPath("/work") if docker else trabajo
 
+    # el limite efectivo contempla que el servidor puede ser mas lento que la
+    # maquina donde se calibro el problema (ver JUDGE_TIME_FACTOR)
+    tiempo_efectivo = max(1, round(problema.tiempo_ms * config.juez.factor_tiempo))
+
     manifiesto = {
         "dir_trabajo": "/tmp" if docker else str(trabajo),
         "fuente": str(raiz / "solucion.py"),
-        "tiempo_ms": problema.tiempo_ms,
+        "tiempo_ms": tiempo_efectivo,
         "memoria_mb": min(problema.memoria_mb, config.juez.memoria_mb),
         "tiene_subtareas": problema.tiene_subtareas and not solo_samples,
         "casos": [{"entrada": str(raiz / "casos" / f"{i:03d}.in")}
@@ -129,7 +133,7 @@ def _ejecutar(fuente: Path, problema: Problema, casos, trabajo: Path, solo_sampl
 
     # techo global: si un problema tiene 30 casos de 2s, el contenedor entero no
     # puede tardar mas que eso mas un margen de arranque
-    techo_seg = (problema.tiempo_ms * len(casos) + config.juez.overhead_ms * 2) / 1000.0
+    techo_seg = (tiempo_efectivo * len(casos) + config.juez.overhead_ms * 2) / 1000.0
 
     crudo = _correr_docker(trabajo, techo_seg) if docker else _correr_local(trabajo, techo_seg)
     return _juzgar_salidas(crudo, problema, casos, solo_samples)
