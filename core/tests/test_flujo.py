@@ -289,3 +289,41 @@ def test_una_salida_grande_no_se_trunca_en_silencio(ronda):
     assert runner.MAX_SALIDA >= 8 << 20, "el techo corta respuestas legitimas"
     # y el techo de escritura del hijo tiene que ser mayor que lo que leemos
     assert runner.MAX_ARCHIVO > runner.MAX_SALIDA
+
+
+# --- regresion: rondas sin grupo configurado -----------------------------------
+
+def test_no_se_abre_ronda_si_no_hay_grupo(monkeypatch):
+    """Sin GRUPO_JID el anuncio no sale y la ronda quemaria su ventana en silencio.
+
+    Paso en produccion: el scheduler abrio la ronda 1 antes de que el bot estuviera
+    vinculado, asi que nadie se entero de que existia y el reloj corria igual.
+    """
+    from contest import db, scheduler
+    from contest.config import config
+    from contest.rounds import ronda_actual
+
+    monkeypatch.setattr(type(config), "grupo_jid", property(lambda self: ""),
+                        raising=False)
+
+    scheduler.tic()
+
+    assert ronda_actual() is None, "no deberia haber abierto ninguna ronda"
+    assert db.uno("SELECT 1 FROM auditoria WHERE evento = 'ronda_postergada'"), \
+        "tendria que haber quedado registrado por que no se abrio"
+
+
+def test_con_grupo_configurado_si_se_abre(monkeypatch):
+    from contest import problems, scheduler
+    from contest.config import config
+    from contest.rounds import ronda_actual
+
+    problems.banco(refrescar=True)
+    monkeypatch.setattr(type(config), "grupo_jid",
+                        property(lambda self: "1234@g.us"), raising=False)
+
+    scheduler.tic()
+
+    ronda = ronda_actual()
+    assert ronda is not None
+    assert ronda.problemas

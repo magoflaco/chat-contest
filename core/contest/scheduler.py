@@ -164,6 +164,16 @@ def tic() -> None:
             _marcar_avisado(clave)
 
     if ronda is None and toca_ronda_nueva():
+        # sin grupo configurado el anuncio no sale, y la ronda quemaria sus 72 horas
+        # sin que nadie se entere. Es preferible no abrirla y avisar en la auditoria.
+        if not config.grupo_jid:
+            if not _ya_avisado("sin-grupo"):
+                db.auditar("ronda_postergada",
+                           detalle="GRUPO_JID esta vacio: no se abre ninguna ronda hasta "
+                                   "configurarlo, si no nadie se enteraria de que existe")
+                _marcar_avisado("sin-grupo")
+            return
+
         try:
             nueva = crear_ronda(publicar_ya=True)
         except RuntimeError as e:
