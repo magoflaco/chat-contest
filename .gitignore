@@ -33,3 +33,6 @@ venv/
 # sistema
 .DS_Store
 Thumbs.db
+
+# problemas generados por IA todavia sin revisar por una persona
+data/problems/_borradores/

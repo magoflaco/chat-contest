@@ -38,8 +38,13 @@ def disponible() -> bool:
     return config.ia.habilitada
 
 
-def _chat(mensajes: list[dict], *, temperatura: float = 0.3, max_tokens: int = 1200) -> Respuesta:
-    """Una llamada al endpoint /chat/completions. Lanza `ErrorIA` si algo falla."""
+def _chat(mensajes: list[dict], *, temperatura: float = 0.3, max_tokens: int = 1200,
+          timeout_seg: int | None = None) -> Respuesta:
+    """Una llamada al endpoint /chat/completions. Lanza `ErrorIA` si algo falla.
+
+    `timeout_seg` sobreescribe el de la config: generar un problema entero tarda
+    bastante mas que explicar un veredicto.
+    """
     if not config.ia.habilitada:
         raise ErrorIA("la IA no esta configurada (falta NVIDIA_API_KEY en el .env)")
 
@@ -63,7 +68,7 @@ def _chat(mensajes: list[dict], *, temperatura: float = 0.3, max_tokens: int = 1
     )
 
     try:
-        with urllib.request.urlopen(pedido, timeout=config.ia.timeout_seg) as r:
+        with urllib.request.urlopen(pedido, timeout=timeout_seg or config.ia.timeout_seg) as r:
             datos = json.loads(r.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         detalle = e.read().decode("utf-8", errors="replace")[:300]
@@ -227,6 +232,7 @@ def redactar_problema(dificultad: int, tema: str = "") -> dict:
         ],
         temperatura=0.8,
         max_tokens=4000,
+        timeout_seg=420,      # escribir enunciado, solucion y generador lleva su tiempo
     )
 
     return _extraer_json(respuesta.texto)
@@ -239,15 +245,22 @@ def _extraer_json(texto: str) -> dict:
         texto = texto.split("```")[1]
         if texto.lstrip().lower().startswith("json"):
             texto = texto.lstrip()[4:]
-    try:
-        return json.loads(texto)
-    except json.JSONDecodeError:
-        pass
 
+    # strict=False acepta saltos de linea y tabs literales dentro de los strings.
+    # Hace falta: el campo "solucion" es codigo Python, y los modelos casi nunca
+    # lo escapan, aunque el JSON estricto lo exija.
+    for candidato in (texto, _entre_llaves(texto)):
+        if not candidato:
+            continue
+        try:
+            return json.loads(candidato, strict=False)
+        except json.JSONDecodeError:
+            continue
+
+    raise ErrorIA("el modelo no devolvio un JSON que se pueda leer")
+
+
+def _entre_llaves(texto: str) -> str:
+    """El trozo desde la primera llave hasta la ultima, por si vino con prosa alrededor."""
     inicio, fin = texto.find("{"), texto.rfind("}")
-    if inicio == -1 or fin <= inicio:
-        raise ErrorIA("el modelo no devolvio JSON")
-    try:
-        return json.loads(texto[inicio:fin + 1])
-    except json.JSONDecodeError as e:
-        raise ErrorIA(f"el JSON del modelo esta mal formado: {e}") from e
+    return texto[inicio:fin + 1] if inicio != -1 and fin > inicio else ""

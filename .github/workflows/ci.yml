@@ -1,0 +1,116 @@
+name: CI
+
+# Lo que verifica cada pull request:
+#
+#   1. la suite de tests del core
+#   2. que el banco de problemas cumpla el formato
+#   3. que la solucion de referencia de CADA problema pase TODOS sus casos
+#   4. que el sandbox del juez contenga los 16 ataques conocidos
+#
+# El punto 3 es el que mas valor tiene para el club: agarra un problema con un
+# test mal antes de que un chico entregue una solucion correcta y le de WA.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  tests:
+    name: Tests y banco de problemas
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: core/requirements.txt
+
+      - name: Instalar dependencias
+        run: pip install -r core/requirements.txt
+
+      - name: Construir la imagen del juez
+        run: docker build -t chat-contest-judge:latest judge/
+
+      - name: Suite de tests
+        working-directory: core
+        run: python -m pytest -q
+        env:
+          # los tests corren sin Docker a proposito: son rapidos y no necesitan
+          # aislamiento, porque solo ejecutan codigo que escribimos nosotros
+          JUDGE_BACKEND: subprocess
+          CORE_TOKEN: token-de-ci
+
+      - name: Validar el formato del banco
+        working-directory: core
+        run: python -m contest.cli validar
+        env:
+          JUDGE_BACKEND: subprocess
+
+      - name: Verificar que los samples coincidan con las soluciones
+        run: python scripts/generar_tests.py --verificar
+
+      - name: Correr cada solucion de referencia contra todos sus casos
+        working-directory: core
+        run: python -m contest.cli probar-todo
+        env:
+          JUDGE_BACKEND: docker
+          CORE_TOKEN: token-de-ci
+
+  sandbox:
+    name: Aislamiento del juez
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: core/requirements.txt
+
+      - name: Instalar dependencias
+        run: pip install -r core/requirements.txt
+
+      - name: Construir la imagen del juez
+        run: docker build -t chat-contest-judge:latest judge/
+
+      - name: Correr los ataques contra el sandbox
+        run: python scripts/verificar_sandbox.py
+        env:
+          JUDGE_BACKEND: docker
+          CORE_TOKEN: token-de-ci
+
+  bot:
+    name: Gateway de WhatsApp
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: bot/package.json
+
+      - name: Instalar dependencias
+        working-directory: bot
+        run: npm install
+
+      - name: Verificar que todos los modulos carguen
+        working-directory: bot
+        run: |
+          node -e "
+            require('./src/config');
+            require('./src/core/client');
+            require('./src/whatsapp/mensajes');
+            require('./src/whatsapp/handler');
+            require('./src/whatsapp/publicador');
+            require('./src/whatsapp/conexion');
+            console.log('todos los modulos cargan');
+          "
