@@ -28,8 +28,11 @@ async function iniciar() {
         browser: Browsers.ubuntu(config.botName),
         // no marcamos en linea todo el tiempo: el bot solo responde cuando le hablan
         markOnlineOnConnect: false,
-        // sin esto Baileys guarda todos los mensajes del grupo en memoria
-        shouldSyncHistoryMessage: () => false,
+        // Nota: se probo `shouldSyncHistoryMessage: () => false` para ahorrar
+        // memoria, pero Baileys avisa que eso le impide acceder al mapeo inicial
+        // de LIDs y termina causando errores de sesion. Para un bot que tiene que
+        // quedarse conectado, esa estabilidad vale mas que los MB que ahorraba;
+        // el techo de memoria lo pone systemd con MemoryMax.
     });
 
     sock.ev.on('creds.update', saveCreds);

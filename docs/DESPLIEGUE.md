@@ -24,6 +24,37 @@ terceros: es la única parte del sistema donde un error se paga caro.
 
 ---
 
+## La instalacion real de este proyecto
+
+Chat Contest corre en un VPS que **comparte con otro servicio importante**
+(`reporithm-api`). Eso condiciona varias decisiones, y conviene tenerlas presentes
+antes de tocar nada:
+
+| Cosa | Valor | Por que |
+|---|---|---|
+| Puerto del core | `8100` | el `8000` lo usa reporithm-api |
+| Swap | 2 GB, `swappiness=10` | la maquina tiene 954 MB de RAM y no traia swap |
+| `MemoryMax` | core 280M, bot 320M | para que ninguno se desborde |
+| `OOMScoreAdjust` | core 500, bot 700 | si el kernel tiene que matar algo, que elija lo nuestro y **nunca** reporithm |
+| `JUDGE_MEMORY_MB` | 192 | los contenedores del juez viven en su propio cgroup, aparte del limite del core |
+| `JUDGE_TIME_FACTOR` | 3.0 | medido con `contest.cli calibrar`: este servidor es ~3x mas lento que una notebook |
+| Salida a internet | tunel de Cloudflare | no hay puertos abiertos; se agrego `contest-api.itb.lat` al tunel que ya existia |
+
+Dominios:
+
+- `contest.itb.lat` -> Cloudflare Pages (proyecto `chat-contest`, output dir `web`)
+- `contest-api.itb.lat` -> tunel -> `127.0.0.1:8100` del VPS
+
+Si alguna vez hay que tocar el tunel, **leer primero su configuracion y conservar
+las rutas existentes**: es el mismo tunel que publica `api.reporithm.com`.
+
+```bash
+# ver la config actual antes de modificarla
+curl -s "https://api.cloudflare.com/client/v4/accounts/$ACC/cfd_tunnel/$TUN/configurations"      -H "Authorization: Bearer $CF_TOKEN"
+```
+
+---
+
 ## VPS
 
 ### 1. Dependencias
