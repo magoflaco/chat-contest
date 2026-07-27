@@ -101,9 +101,42 @@ function numeroDe(jid) {
     return (jid || '').split('@')[0].split(':')[0];
 }
 
-/** Quien mando el mensaje: en grupo es el participante, en privado el chat. */
+/** True si el JID es un LID (el identificador opaco nuevo de WhatsApp). */
+function esLid(jid) {
+    return String(jid || '').includes('@lid');
+}
+
+/**
+ * Quien mando el mensaje, en todas las formas con las que llego.
+ *
+ * WhatsApp esta migrando de numeros de telefono a LIDs. Segun el chat, Baileys
+ * entrega `remoteJid`/`participant` como uno u otro, y pone la forma alternativa
+ * en `remoteJidAlt`/`participantAlt`.
+ *
+ * Devolvemos las dos y marcamos cual preferimos: el telefono, porque es lo que
+ * se configura en ADMINS y lo que una persona reconoce. El core se queda con esa
+ * como identidad canonica y recuerda el mapeo, asi nadie termina contado dos
+ * veces en el ranking.
+ *
+ * @returns {{principal: string, alternos: string[]}}
+ */
 function remitenteDe(mensaje) {
-    return numeroDe(mensaje.key.participant || mensaje.key.remoteJid);
+    const clave = mensaje.key || {};
+    const enGrupo = String(clave.remoteJid || '').endsWith('@g.us');
+
+    const primario = enGrupo ? clave.participant : clave.remoteJid;
+    const alterno = enGrupo ? clave.participantAlt : clave.remoteJidAlt;
+
+    const candidatos = [primario, alterno].filter(Boolean);
+    // el telefono primero; si solo hay LID, se usa el LID
+    const telefono = candidatos.find((j) => !esLid(j));
+    const principal = numeroDe(telefono || candidatos[0]);
+
+    const alternos = candidatos
+        .map(numeroDe)
+        .filter((n) => n && n !== principal);
+
+    return { principal, alternos };
 }
 
 module.exports = {

@@ -530,3 +530,74 @@ tbody tr:focus-visible { outline: 3px solid var(--cielo); outline-offset: -3px; 
         transition-duration: 0.01ms !important;
     }
 }
+
+/* --- enunciados ------------------------------------------------------------ */
+
+.problema { cursor: pointer; }
+.problema:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--linea); }
+.problema:focus-visible { outline: 3px solid var(--cielo); outline-offset: 3px; }
+
+.ver-enunciado {
+    margin: calc(var(--u) * 2) 0 0;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 10px;
+    color: var(--tinta-suave);
+}
+.problema:hover .ver-enunciado { color: var(--tinta); }
+
+.enunciado { line-height: 1.7; }
+.enunciado p { margin: 0 0 calc(var(--u) * 3); }
+.enunciado h3, .enunciado h4 { margin: calc(var(--u) * 4) 0 calc(var(--u) * 2); }
+.enunciado ul { margin: 0 0 calc(var(--u) * 3); padding-left: calc(var(--u) * 5); }
+.enunciado li { margin-bottom: var(--u); }
+
+.enunciado code, .comoentregar code {
+    background: var(--superficie-2);
+    border: 1px solid var(--linea);
+    padding: 0 3px;
+}
+
+.enunciado blockquote {
+    margin: 0 0 calc(var(--u) * 3);
+    padding: calc(var(--u) * 2) calc(var(--u) * 3);
+    border-left: 4px solid var(--acento);
+    background: var(--superficie-2);
+}
+
+/* los bloques de codigo se desbordan solos, sin empujar la pagina a lo ancho */
+.codigo {
+    margin: 0 0 calc(var(--u) * 2);
+    padding: calc(var(--u) * 2) calc(var(--u) * 3);
+    background: var(--superficie-2);
+    border: 2px solid var(--linea);
+    overflow-x: auto;
+    white-space: pre;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.ejemplo {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: calc(var(--u) * 3);
+    margin-bottom: calc(var(--u) * 3);
+}
+.ejemplo h4 {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--tinta-suave);
+    margin: 0 0 var(--u);
+}
+
+.comoentregar {
+    margin-top: calc(var(--u) * 5);
+    padding-top: calc(var(--u) * 4);
+    border-top: 3px solid var(--superficie-2);
+}
+
+#enunciado .detalle-cabecera .codigo-problema { align-self: flex-start; }
+
+@media (max-width: 560px) {
+    .ejemplo { grid-template-columns: 1fr; }
+}

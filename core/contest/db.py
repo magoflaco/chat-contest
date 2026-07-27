@@ -124,6 +124,16 @@ CREATE TABLE IF NOT EXISTS auditoria (
 CREATE INDEX IF NOT EXISTS ix_auditoria_evento ON auditoria(evento);
 CREATE INDEX IF NOT EXISTS ix_auditoria_momento ON auditoria(momento);
 
+-- WhatsApp esta migrando de numeros de telefono a LIDs, y un mismo usuario puede
+-- llegar identificado de las dos formas segun el chat. Sin esta tabla, la misma
+-- persona aparecia dos veces en el ranking.
+CREATE TABLE IF NOT EXISTS identidades (
+    alias     TEXT PRIMARY KEY,       -- LID o numero, como venga
+    usuario   TEXT NOT NULL,          -- la identidad canonica (el telefono si se conoce)
+    visto_en  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_identidades_usuario ON identidades(usuario);
+
 -- huellas de codigo para detectar copias entre participantes (ver antifraud.py)
 CREATE TABLE IF NOT EXISTS huellas (
     entrega_id        INTEGER PRIMARY KEY REFERENCES entregas(id) ON DELETE CASCADE,

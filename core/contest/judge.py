@@ -87,7 +87,9 @@ def juzgar(fuente: Path, problema: Problema, *, solo_samples: bool = False) -> R
     if not casos:
         raise ErrorJuez(f"el problema {problema.slug} no tiene casos de prueba")
 
-    trabajo = Path(tempfile.mkdtemp(prefix="cc-juez-"))
+    base = config.dir_juez
+    base.mkdir(parents=True, exist_ok=True)
+    trabajo = Path(tempfile.mkdtemp(prefix="cc-juez-", dir=str(base)))
     try:
         return _ejecutar(fuente, problema, casos, trabajo, solo_samples)
     finally:

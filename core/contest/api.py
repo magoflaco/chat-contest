@@ -16,7 +16,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from . import commands, db, problems, ranking, scheduler
+from . import commands, db, identidades, problems, ranking, scheduler
 from .config import config
 from .rounds import historial, ronda_actual, ronda_por_numero
 from .scoring import BASE_POR_DIFICULTAD, NOMBRE_DIFICULTAD
@@ -75,6 +75,9 @@ class MensajeEntrante(BaseModel):
     texto: str = ""
     es_grupo: bool = False
     adjunto: Adjunto | None = None
+    #: otras formas con las que llego identificado el mismo remitente.
+    #: WhatsApp esta migrando a LIDs y manda uno u otro segun el chat.
+    alternos: list[str] = Field(default_factory=list)
 
 
 class MensajeSaliente(BaseModel):
@@ -91,14 +94,19 @@ class RespuestaBot(BaseModel):
 @app.post("/bot/mensaje", response_model=RespuestaBot, dependencies=[Depends(_autorizar)])
 def recibir_mensaje(m: MensajeEntrante) -> RespuestaBot:
     """Punto de entrada de todo lo que llega por WhatsApp."""
-    numero = normalizar_numero(m.numero)
+    alternos = [normalizar_numero(x) for x in m.alternos]
+    numero = identidades.canonica(normalizar_numero(m.numero), alternos)
+
+    # un admin puede estar configurado por telefono y escribir desde un chat que
+    # lo identifica por LID (o al reves): vale cualquiera de sus identidades
+    es_admin = any(config.es_admin(x) for x in {numero, *alternos})
 
     ctx = commands.Contexto(
         numero=numero,
         nombre=m.nombre,
         jid=m.jid,
         es_grupo=m.es_grupo,
-        es_admin=config.es_admin(numero),
+        es_admin=es_admin,
         texto=m.texto,
         args="",
         adjunto_texto=(m.adjunto.contenido if m.adjunto else ""),
@@ -145,7 +153,9 @@ def fallar_saliente(mensaje_id: int, error: str = Query(default="")) -> dict:
 @app.post("/bot/visto", dependencies=[Depends(_autorizar)])
 def registrar_visto(m: MensajeEntrante) -> dict:
     """Alta perezosa de alguien que hablo en el grupo pero no uso un comando."""
-    asegurar_usuario(normalizar_numero(m.numero), m.nombre)
+    numero = identidades.canonica(normalizar_numero(m.numero),
+                                  [normalizar_numero(x) for x in m.alternos])
+    asegurar_usuario(numero, m.nombre)
     return {"ok": True}
 
 
@@ -182,7 +192,8 @@ def api_ranking(ronda: int | None = None, limite: int = Query(default=100, ge=1,
 
 @app.get("/api/rondas")
 def api_rondas(limite: int = Query(default=10, ge=1, le=50)) -> dict:
-    return {"rondas": [_ronda_publica(r) for r in historial(limite)]}
+    return {"rondas": [_ronda_publica(r, con_editorial=not r.abierta)
+                       for r in historial(limite)]}
 
 
 @app.get("/api/ronda/{numero}")
@@ -190,7 +201,7 @@ def api_ronda(numero: int) -> dict:
     r = ronda_por_numero(numero)
     if not r:
         raise HTTPException(404, "esa ronda no existe")
-    return _ronda_publica(r, con_enunciado=not r.abierta)
+    return _ronda_publica(r, con_editorial=not r.abierta)
 
 
 @app.get("/api/participante/{sufijo}")
@@ -221,8 +232,14 @@ def api_participante(sufijo: str) -> dict:
     }
 
 
-def _ronda_publica(r, con_enunciado: bool = False) -> dict:
-    """Serializa una ronda para la web. Nunca incluye casos de prueba."""
+def _ronda_publica(r, con_editorial: bool = False) -> dict:
+    """Serializa una ronda para la web.
+
+    El enunciado y los casos de EJEMPLO van siempre: son publicos, igual que en
+    cualquier juez online. Lo que nunca sale son los casos secretos.
+
+    La editorial si se reserva hasta que la ronda cierra: es la solucion.
+    """
     problemas_out = []
     for pr in r.problemas:
         p = pr.problema
@@ -237,10 +254,24 @@ def _ronda_publica(r, con_enunciado: bool = False) -> dict:
             "intentaron": stats["intentaron"],
             "resolvieron": stats["resolvieron"],
         }
-        if con_enunciado and p:
+        if p:
             item["enunciado"] = p.enunciado
-            item["editorial"] = p.editorial
             item["fuente"] = p.fuente.atribucion()
+            item["tiempo_ms"] = p.tiempo_ms
+            item["memoria_mb"] = p.memoria_mb
+            item["samples"] = [
+                {"entrada": c.leer_entrada().strip()[:2000],
+                 "salida": c.leer_esperado().strip()[:2000]}
+                for c in p.samples[:2]
+            ]
+            item["subtareas"] = [
+                {"id": str(s.get("id")), "peso": s.get("peso"),
+                 "descripcion": s.get("descripcion", "")}
+                for s in p.subtareas
+            ]
+            # la editorial es la solucion: recien cuando la ronda cerro
+            if con_editorial:
+                item["editorial"] = p.editorial
         problemas_out.append(item)
 
     return {

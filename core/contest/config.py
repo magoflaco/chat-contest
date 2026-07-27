@@ -155,6 +155,17 @@ class Config:
     def dir_entregas(self) -> Path:
         return RAIZ / "submissions"
 
+    @property
+    def dir_juez(self) -> Path:
+        """Donde el juez arma el directorio que le monta al contenedor.
+
+        NO se usa /tmp: las unidades de systemd corren con PrivateTmp=true, que le
+        da al core un /tmp propio dentro de su namespace. El demonio de Docker vive
+        fuera de ese namespace, asi que no ve esa ruta y el bind falla con
+        "bind source path does not exist". Bajo var/ lo ven los dos.
+        """
+        return RAIZ / "var" / "juez"
+
     def es_admin(self, numero: str) -> bool:
         return numero in self.admins
 

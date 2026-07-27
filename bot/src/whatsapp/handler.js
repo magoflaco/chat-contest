@@ -68,7 +68,7 @@ async function manejar(sock, mensaje) {
     if (!item) return;
 
     const esGrupo = jid.endsWith('@g.us');
-    const numero = remitenteDe(mensaje);
+    const { principal: numero, alternos } = remitenteDe(mensaje);
     const nombre = mensaje.pushName || '';
 
     // fotos y audios: contestamos una sola vez y por privado, para no ensuciar el grupo
@@ -115,7 +115,7 @@ async function manejar(sock, mensaje) {
         // en el grupo damos de alta a quien participa aunque no use comandos,
         // asi aparece en el ranking apenas entregue algo
         if (esGrupo && numero) {
-            core.registrarVisto({ jid, numero, nombre, texto: '', es_grupo: true })
+            core.registrarVisto({ jid, numero, nombre, texto: '', es_grupo: true, alternos })
                 .catch(() => {});
         }
         return;
@@ -136,6 +136,7 @@ async function manejar(sock, mensaje) {
         const respuestas = await core.procesarMensaje({
             jid,
             numero,
+            alternos,
             nombre,
             texto,
             es_grupo: esGrupo,

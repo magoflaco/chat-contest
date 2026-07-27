@@ -5,16 +5,12 @@
 // facil de entender para alguien del club que recien arranca con JavaScript.
 
 import { icono } from './iconos.js';
+import { esc, panelEnunciado } from './enunciados.js';
 
 const API = (window.CONTEST_API || '').replace(/\/$/, '');
 const REFRESCO_MS = Number(window.CONTEST_REFRESCO_MS) || 0;
 
 const $ = (sel) => document.querySelector(sel);
-
-/** Escapa texto que viene de la API antes de meterlo en innerHTML. */
-const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-}[c]));
 
 async function traer(ruta) {
     const respuesta = await fetch(`${API}${ruta}`, { headers: { Accept: 'application/json' } });
@@ -195,7 +191,8 @@ function tarjetaProblema(pr) {
         : 'todavia no lo intento nadie';
 
     return `
-        <article class="problema">
+        <article class="problema" tabindex="0" role="button"
+                 aria-label="Ver el enunciado de ${esc(pr.codigo)}">
             <div class="problema-cabecera">
                 <span class="codigo-problema">${esc(pr.codigo)}</span>
                 ${barraDificultad(pr.dificultad)}
@@ -204,7 +201,37 @@ function tarjetaProblema(pr) {
             <p class="chico tenue">${esc(pr.nombre_dificultad)} &middot; ${esc(pr.base)} puntos base</p>
             <p class="chico">${esc(tasa)}</p>
             ${etiquetas ? `<div class="etiquetas">${etiquetas}</div>` : ''}
+            <p class="chico ver-enunciado">ver el enunciado</p>
         </article>`;
+}
+
+/** Abre el panel con el enunciado completo de un problema. */
+function abrirEnunciado(pr) {
+    const panel = $('#enunciado');
+    panel.hidden = false;
+    panel.innerHTML = panelEnunciado(pr);
+    panel.querySelector('.cerrar').addEventListener('click', () => { panel.hidden = true; });
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/** Hace clickeables las tarjetas de problema que haya dentro de un contenedor. */
+function engancharProblemas(caja, problemas) {
+    const porCodigo = new Map(problemas.map((p) => [p.codigo, p]));
+
+    for (const tarjeta of caja.querySelectorAll('.problema')) {
+        const codigo = tarjeta.querySelector('.codigo-problema')?.textContent?.trim();
+        const pr = porCodigo.get(codigo);
+        if (!pr) continue;
+
+        const abrir = () => abrirEnunciado(pr);
+        tarjeta.addEventListener('click', abrir);
+        tarjeta.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                abrir();
+            }
+        });
+    }
 }
 
 function pintarRonda(ronda) {
@@ -236,6 +263,8 @@ function pintarRonda(ronda) {
             </p>
             <div class="lista-problemas">${ronda.problemas.map(tarjetaProblema).join('')}</div>
         </div>`;
+
+    engancharProblemas(caja, ronda.problemas);
 }
 
 // --- historial ----------------------------------------------------------------
@@ -261,6 +290,8 @@ function pintarHistorial(rondas) {
             <p class="chico tenue">${esc(fecha(r.inicio))} - ${esc(fecha(r.fin))}</p>
             <div class="lista-problemas">${r.problemas.map(tarjetaProblema).join('')}</div>
         </div>`).join('');
+
+    engancharProblemas(caja, rondas.flatMap((r) => r.problemas));
 }
 
 // --- reglas -------------------------------------------------------------------

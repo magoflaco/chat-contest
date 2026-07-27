@@ -180,7 +180,13 @@ def resumen() -> dict:
         return int(list(f)[0]) if f else 0
 
     return {
-        "participantes": escalar("SELECT COUNT(*) FROM usuarios WHERE bloqueado = 0"),
+        # cuenta a quien ENTREGO algo, no a quien simplemente hablo en el grupo:
+        # el alta es perezosa y registra a cualquiera que escriba, asi que contar
+        # usuarios daba un numero inflado que no significaba nada
+        "participantes": escalar(
+            "SELECT COUNT(DISTINCT e.usuario) FROM entregas e "
+            "JOIN usuarios u ON u.numero = e.usuario WHERE u.bloqueado = 0"),
+        "registrados": escalar("SELECT COUNT(*) FROM usuarios WHERE bloqueado = 0"),
         "entregas": escalar("SELECT COUNT(*) FROM entregas"),
         "aceptadas": escalar("SELECT COUNT(*) FROM entregas WHERE veredicto = 'AC'"),
         "rondas": escalar("SELECT COUNT(*) FROM rondas"),
