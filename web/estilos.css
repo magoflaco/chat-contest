@@ -1,0 +1,483 @@
+/* Chat Contest - leaderboard
+ *
+ * Estetica pixel art con paleta pastel clara. Tres reglas que sostienen el look:
+ *
+ * 1. Nada de bordes redondeados ni sombras difusas. Los bordes son duros y las
+ *    sombras son bloques solidos desplazados, como el relieve de un sprite.
+ * 2. Todo se alinea a una grilla de 4px. Los espaciados son multiplos de --u.
+ * 3. Tipografia monoespaciada con letter-spacing, que evoca la pantalla de una
+ *    consola sin necesidad de cargar una fuente externa.
+ *
+ * No hay emojis en ningun lado: los iconos son SVG pixel art propios (iconos.js).
+ */
+
+:root {
+    /* unidad de la grilla */
+    --u: 4px;
+
+    /* paleta pastel clara */
+    --papel:      #f6f2ec;
+    --superficie: #fffdf9;
+    --superficie-2: #f0ebe3;
+    --tinta:      #3b3849;
+    --tinta-suave: #7d7791;
+    --linea:      #3b3849;
+
+    --lila:    #c3b1ee;
+    --menta:   #a6dcc6;
+    --durazno: #f7bda6;
+    --cielo:   #aad0f2;
+    --manteca: #f6e0a4;
+    --rosa:    #f2b7cd;
+
+    /* colores semanticos */
+    --acento:  var(--lila);
+    --exito:   var(--menta);
+    --alerta:  var(--durazno);
+
+    --sombra: 4px 4px 0 var(--linea);
+    --sombra-chica: 2px 2px 0 var(--linea);
+
+    color-scheme: light;
+}
+
+/* Variante nocturna: la misma identidad pastel, bajada de brillo. La pagina se
+ * mira de noche desde el celular y el fondo claro a pleno encandila. */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --papel:      #22202b;
+        --superficie: #2b2836;
+        --superficie-2: #343040;
+        --tinta:      #efe9f5;
+        --tinta-suave: #a49dba;
+        --linea:      #14121b;
+
+        --lila:    #9b86cc;
+        --menta:   #74b39c;
+        --durazno: #cc9280;
+        --cielo:   #7ea6cc;
+        --manteca: #ccb277;
+        --rosa:    #cc90a6;
+
+        color-scheme: dark;
+    }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+    margin: 0;
+    padding: calc(var(--u) * 4);
+    min-height: 100vh;
+    background-color: var(--papel);
+    /* trama de puntos: da textura sin distraer, y refuerza la grilla */
+    background-image: radial-gradient(var(--superficie-2) 1px, transparent 1px);
+    background-size: 8px 8px;
+    color: var(--tinta);
+    font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas,
+                 "DejaVu Sans Mono", monospace;
+    font-size: 15px;
+    line-height: 1.6;
+    letter-spacing: 0.02em;
+}
+
+.envoltorio {
+    max-width: 940px;
+    margin: 0 auto;
+}
+
+/* --- tipografia ----------------------------------------------------------- */
+
+h1, h2, h3 {
+    margin: 0;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+h1 { font-size: clamp(20px, 5vw, 30px); }
+h2 { font-size: 16px; }
+h3 { font-size: 13px; }
+
+a {
+    color: var(--tinta);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+}
+
+.tenue { color: var(--tinta-suave); }
+.chico { font-size: 12px; }
+
+/* --- iconos --------------------------------------------------------------- */
+
+.icono { display: block; }
+.icono .px-a { fill: currentColor; }
+.icono .px-b { fill: var(--acento); }
+
+.icono-caja {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+}
+
+/* Los iconos que se apoyan sobre un chip de color necesitan que el detalle de
+ * acento sea un oscurecimiento, no un aclarado: sobre manteca o lila, un detalle
+ * blanco desaparece. Un negro translucido funciona sobre cualquiera de la paleta. */
+.marca .icono-caja,
+.regresiva .icono-caja { color: var(--linea); }
+
+.marca .icono .px-b,
+.ficha .icono .px-b,
+.regresiva .icono .px-b,
+.detalle-cabecera .icono .px-b { fill: var(--linea); opacity: 0.35; }
+
+.vacio .icono .px-b { fill: var(--tinta-suave); opacity: 0.4; }
+
+/* --- bloques con relieve -------------------------------------------------- */
+
+.panel {
+    background: var(--superficie);
+    border: 3px solid var(--linea);
+    box-shadow: var(--sombra);
+    padding: calc(var(--u) * 4);
+    margin-bottom: calc(var(--u) * 5);
+}
+
+/* --- encabezado ----------------------------------------------------------- */
+
+.cabecera {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--u) * 3);
+    flex-wrap: wrap;
+    margin-bottom: calc(var(--u) * 5);
+}
+
+.marca {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--u) * 3);
+    background: var(--acento);
+    border: 3px solid var(--linea);
+    box-shadow: var(--sombra);
+    padding: calc(var(--u) * 2) calc(var(--u) * 3);
+}
+
+
+.marca-texto { display: flex; flex-direction: column; line-height: 1.15; }
+.marca-texto small {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--linea);
+    opacity: 0.75;
+}
+
+/* --- navegacion ----------------------------------------------------------- */
+
+.pestanias {
+    display: flex;
+    gap: calc(var(--u) * 2);
+    flex-wrap: wrap;
+    margin-bottom: calc(var(--u) * 5);
+}
+
+.pestania {
+    font: inherit;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 12px;
+    cursor: pointer;
+    padding: calc(var(--u) * 2) calc(var(--u) * 4);
+    background: var(--superficie);
+    color: var(--tinta);
+    border: 3px solid var(--linea);
+    box-shadow: var(--sombra-chica);
+    /* el hundido al presionar es lo que hace que se sienta un boton de consola */
+    transition: transform 60ms steps(2), box-shadow 60ms steps(2);
+}
+
+.pestania:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--linea); }
+.pestania:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--linea); }
+
+.pestania[aria-selected="true"] {
+    background: var(--acento);
+    transform: translate(2px, 2px);
+    box-shadow: 0 0 0 var(--linea);
+}
+
+.pestania:focus-visible { outline: 3px solid var(--cielo); outline-offset: 3px; }
+
+/* --- fichas de estadistica ------------------------------------------------ */
+
+.rejilla-fichas {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: calc(var(--u) * 3);
+    margin-bottom: calc(var(--u) * 5);
+}
+
+.ficha {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--u) * 3);
+    background: var(--superficie);
+    border: 3px solid var(--linea);
+    box-shadow: var(--sombra-chica);
+    padding: calc(var(--u) * 3);
+}
+
+.ficha .icono-caja {
+    width: 32px; height: 32px;
+    border: 2px solid var(--linea);
+    background: var(--manteca);
+    color: var(--linea);
+}
+
+.ficha-valor { font-size: 22px; font-weight: 700; line-height: 1; }
+.ficha-nombre {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--tinta-suave);
+}
+
+/* --- tabla de posiciones -------------------------------------------------- */
+
+.tabla-caja { overflow-x: auto; }
+
+table {
+    width: 100%;
+    min-width: 460px;
+    border-collapse: collapse;
+}
+
+th, td {
+    text-align: left;
+    padding: calc(var(--u) * 2) calc(var(--u) * 2);
+    border-bottom: 2px solid var(--superficie-2);
+}
+
+th {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--tinta-suave);
+    border-bottom: 3px solid var(--linea);
+    white-space: nowrap;
+}
+
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--superficie-2); }
+tbody tr:focus-visible { outline: 3px solid var(--cielo); outline-offset: -3px; }
+
+/* el puesto va en un cuadradito, como una ficha de juego */
+.puesto {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 30px;
+    padding: 2px calc(var(--u));
+    border: 2px solid var(--linea);
+    background: var(--superficie-2);
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.puesto-1 { background: var(--manteca); }
+.puesto-2 { background: var(--cielo); }
+.puesto-3 { background: var(--durazno); }
+
+.barra-precision {
+    display: block;
+    height: 10px;
+    width: 72px;
+    border: 2px solid var(--linea);
+    background: var(--superficie-2);
+    /* el relleno se pinta con un gradiente duro: sin degrade, se ve pixelado */
+    background-image: linear-gradient(to right, var(--menta) var(--relleno, 0%),
+                                                transparent var(--relleno, 0%));
+}
+
+/* --- problemas ------------------------------------------------------------ */
+
+.lista-problemas {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: calc(var(--u) * 3);
+}
+
+.problema {
+    background: var(--superficie);
+    border: 3px solid var(--linea);
+    box-shadow: var(--sombra-chica);
+    padding: calc(var(--u) * 3);
+}
+
+.problema-cabecera {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: calc(var(--u) * 2);
+    margin-bottom: calc(var(--u) * 2);
+}
+
+.codigo-problema {
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    background: var(--linea);
+    color: var(--superficie);
+    padding: 2px calc(var(--u) * 2);
+}
+
+/* barra de dificultad: cinco bloques, se llenan segun el nivel */
+.dificultad { display: flex; gap: 3px; align-items: center; }
+
+.bloque-dif {
+    width: 10px; height: 10px;
+    border: 2px solid var(--linea);
+    background: var(--superficie-2);
+}
+.bloque-dif.lleno { background: var(--acento); }
+
+.dif-1 { --acento: var(--menta); }
+.dif-2 { --acento: var(--cielo); }
+.dif-3 { --acento: var(--lila); }
+.dif-4 { --acento: var(--durazno); }
+.dif-5 { --acento: var(--rosa); }
+
+.etiquetas { display: flex; flex-wrap: wrap; gap: var(--u); margin-top: calc(var(--u) * 2); }
+
+.etiqueta {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: 2px solid var(--linea);
+    background: var(--superficie-2);
+    padding: 1px calc(var(--u) * 1.5);
+}
+
+/* --- cuenta regresiva ----------------------------------------------------- */
+
+.regresiva {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--u) * 3);
+    background: var(--manteca);
+    border: 3px solid var(--linea);
+    box-shadow: var(--sombra-chica);
+    padding: calc(var(--u) * 3);
+    margin-bottom: calc(var(--u) * 4);
+}
+.regresiva-valor { font-size: 20px; font-weight: 700; line-height: 1; }
+
+/* --- panel de participante ------------------------------------------------ */
+
+.detalle[hidden] { display: none; }
+
+.detalle-cabecera {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--u) * 3);
+    margin-bottom: calc(var(--u) * 4);
+    flex-wrap: wrap;
+}
+
+.detalle-cabecera .icono-caja {
+    width: 40px; height: 40px;
+    border: 3px solid var(--linea);
+    background: var(--lila);
+    color: var(--linea);
+}
+
+.cerrar {
+    margin-left: auto;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    background: var(--superficie);
+    border: 3px solid var(--linea);
+    box-shadow: var(--sombra-chica);
+    padding: calc(var(--u)) calc(var(--u) * 3);
+}
+.cerrar:active { transform: translate(2px, 2px); box-shadow: none; }
+
+/* los subtitulos dentro de un panel necesitan aire arriba; en las tarjetas de
+ * problema no, porque ahi el h3 es el titulo y va pegado al codigo */
+.panel > h3, .detalle h3 {
+    margin-top: calc(var(--u) * 5);
+    margin-bottom: calc(var(--u) * 2);
+}
+
+.pastillas { display: flex; flex-wrap: wrap; gap: calc(var(--u) * 2); }
+
+.pastilla {
+    display: flex;
+    align-items: center;
+    gap: var(--u);
+    border: 2px solid var(--linea);
+    background: var(--superficie-2);
+    padding: 2px calc(var(--u) * 2);
+    font-size: 12px;
+}
+.pastilla.ok { background: var(--menta); }
+
+/* --- estados -------------------------------------------------------------- */
+
+.vacio {
+    text-align: center;
+    padding: calc(var(--u) * 8) calc(var(--u) * 4);
+    color: var(--tinta-suave);
+}
+.vacio .icono-caja {
+    width: 48px; height: 48px;
+    margin: 0 auto calc(var(--u) * 3);
+    color: var(--tinta-suave);
+}
+
+.error {
+    background: var(--durazno);
+    border: 3px solid var(--linea);
+    box-shadow: var(--sombra-chica);
+    padding: calc(var(--u) * 3);
+    margin-bottom: calc(var(--u) * 4);
+}
+
+/* cargando: un cursor de consola que parpadea */
+.cargando::after {
+    content: "_";
+    animation: parpadeo 1s steps(2, start) infinite;
+}
+@keyframes parpadeo { 50% { opacity: 0; } }
+
+.seccion[hidden] { display: none; }
+
+.pie {
+    text-align: center;
+    font-size: 11px;
+    color: var(--tinta-suave);
+    padding: calc(var(--u) * 4) 0;
+}
+
+/* --- responsive ----------------------------------------------------------- */
+
+@media (max-width: 560px) {
+    body { padding: calc(var(--u) * 2); font-size: 14px; }
+    .panel { padding: calc(var(--u) * 3); }
+    /* en pantallas chicas la precision es la columna mas prescindible */
+    .col-precision { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Chat Contest - Tabla de posiciones</title>
+    <meta name="description" content="Liga de problemas de Python del club de programacion.">
+    <meta name="color-scheme" content="light dark">
+    <link rel="stylesheet" href="estilos.css">
+    <!-- el favicon es el mismo sprite del logo, en linea para no pedir un archivo mas -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23c3b1ee'/%3E%3Cpath d='M3 6h1v1H3zM4 7h1v1H4zM5 8h1v1H5zM4 9h1v1H4zM3 10h1v1H3zM7 10h4v1H7z' fill='%233b3849'/%3E%3C/svg%3E">
+</head>
+<body>
+<div class="envoltorio">
+
+    <header class="cabecera">
+        <div class="marca">
+            <span class="icono-caja" id="logo"></span>
+            <span class="marca-texto">
+                <h1>Chat Contest</h1>
+                <small>club de programacion</small>
+            </span>
+        </div>
+    </header>
+
+    <div id="aviso-error" class="error" hidden></div>
+
+    <nav class="pestanias" role="tablist" aria-label="Secciones">
+        <button class="pestania" role="tab" aria-selected="true"  aria-controls="seccion-ranking"   id="tab-ranking">Ranking</button>
+        <button class="pestania" role="tab" aria-selected="false" aria-controls="seccion-ronda"     id="tab-ronda">Ronda</button>
+        <button class="pestania" role="tab" aria-selected="false" aria-controls="seccion-historial" id="tab-historial">Rondas</button>
+        <button class="pestania" role="tab" aria-selected="false" aria-controls="seccion-reglas"    id="tab-reglas">Reglas</button>
+    </nav>
+
+    <!-- ---------------------------------------------------------- RANKING -->
+    <section class="seccion" id="seccion-ranking" role="tabpanel" aria-labelledby="tab-ranking">
+        <div class="rejilla-fichas" id="fichas"></div>
+
+        <div class="detalle panel" id="detalle" hidden></div>
+
+        <div class="panel">
+            <h2>Tabla de posiciones</h2>
+            <p class="chico tenue">Toca una fila para ver el detalle del participante.</p>
+            <div class="tabla-caja" id="tabla-ranking">
+                <p class="cargando">cargando</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ------------------------------------------------------------ RONDA -->
+    <section class="seccion" id="seccion-ronda" role="tabpanel" aria-labelledby="tab-ronda" hidden>
+        <div id="ronda-actual"><p class="cargando">cargando</p></div>
+    </section>
+
+    <!-- -------------------------------------------------------- HISTORIAL -->
+    <section class="seccion" id="seccion-historial" role="tabpanel" aria-labelledby="tab-historial" hidden>
+        <div id="historial"><p class="cargando">cargando</p></div>
+    </section>
+
+    <!-- ----------------------------------------------------------- REGLAS -->
+    <section class="seccion" id="seccion-reglas" role="tabpanel" aria-labelledby="tab-reglas" hidden>
+        <div class="panel">
+            <h2>Como se puntua</h2>
+            <p><strong>puntos = base x tiempo x intentos</strong></p>
+
+            <h3>Base segun dificultad</h3>
+            <div class="tabla-caja">
+                <table>
+                    <thead>
+                        <tr><th>Nivel</th><th>Nombre</th><th class="num">Puntos</th></tr>
+                    </thead>
+                    <tbody id="tabla-dificultades"></tbody>
+                </table>
+            </div>
+
+            <h3>Factor tiempo</h3>
+            <p>Va de <strong>1.00</strong> cuando se abre la ronda a <strong>0.65</strong> cuando
+               cierra, bajando parejo. Resolver temprano vale mas, pero entregar tarde
+               siempre suma bastante mas que no entregar.</p>
+
+            <h3>Factor intentos</h3>
+            <p>Cada envio rechazado antes del aceptado descuenta un <strong>15%</strong>,
+               con piso en <strong>0.40</strong>. Los errores de sintaxis no penalizan,
+               igual que en ICPC. Reenviar nunca te baja el puntaje: se guarda tu mejor
+               resultado.</p>
+
+            <h3>Desempate</h3>
+            <p>Mas puntos, despues mas problemas resueltos, despues menos tiempo total
+               hasta los aceptados, y por ultimo quien llego primero a ese puntaje.</p>
+        </div>
+
+        <div class="panel">
+            <h2>Como se participa</h2>
+            <p>Todo pasa por WhatsApp. Las entregas van <strong>por privado</strong> al bot.</p>
+            <div class="tabla-caja">
+                <table>
+                    <thead><tr><th>Comando</th><th>Que hace</th></tr></thead>
+                    <tbody>
+                        <tr><td>!problemas</td><td>Lista los problemas abiertos</td></tr>
+                        <tr><td>!problema R1-A</td><td>Muestra el enunciado completo</td></tr>
+                        <tr><td>!probar R1-A ...</td><td>Corre tu codigo contra los ejemplos, sin gastar intentos</td></tr>
+                        <tr><td>!entrega R1-A ...</td><td>Entrega tu solucion</td></tr>
+                        <tr><td>!revisar R1-A</td><td>Te explica por que fallo, sin darte la solucion</td></tr>
+                        <tr><td>!pista R1-A</td><td>Una pista para encarar el problema</td></tr>
+                        <tr><td>!rank</td><td>La tabla de posiciones</td></tr>
+                        <tr><td>!perfil</td><td>Tus estadisticas</td></tr>
+                        <tr><td>!help</td><td>Todos los comandos</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <footer class="pie">
+        <p>Chat Contest &middot; codigo abierto en
+           <a href="https://github.com/magoflaco/chat-contest">magoflaco/chat-contest</a></p>
+    </footer>
+
+</div>
+
+<script src="config.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>
