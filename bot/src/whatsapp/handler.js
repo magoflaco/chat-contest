@@ -4,6 +4,7 @@
 // adjunto si lo hay, y le pasa todo al core. No decide nada de la competencia.
 
 const core = require('../core/client');
+const stickers = require('./stickers');
 const { extraer, esArchivoDeCodigo, descargarComoTexto, remitenteDe } = require('./mensajes');
 
 const PREFIJO = '!';
@@ -143,6 +144,8 @@ async function manejar(sock, mensaje) {
 
         for (const r of respuestas) {
             await responder(sock, r.destino || jid, r.texto, r.destino === jid ? mensaje : null);
+            // el sticker va despues del texto: primero la informacion, despues Perove
+            await stickers.enviar(sock, r.destino || jid, r.sticker);
         }
     } catch (error) {
         console.error('[handler] el core fallo:', error.message);

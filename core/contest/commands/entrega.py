@@ -113,7 +113,13 @@ def cmd_entrega(ctx: Contexto) -> Respuesta | str:
     if resultado.sospechosa:
         lineas += ["", "_esta entrega quedo marcada para revision manual._"]
 
-    return Respuesta("\n".join(lineas))
+    if resultado.aceptado and resultado.mejoro:
+        lineas += ["", f"tabla completa: {config.web_url}"]
+
+    # Perove festeja solo cuando la entrega suma de verdad. Si celebrara cada
+    # reenvio aceptado, el sticker dejaria de significar algo.
+    sticker = "cast" if (resultado.aceptado and resultado.mejoro) else ""
+    return Respuesta("\n".join(lineas), sticker=sticker)
 
 
 @comando("probar", "test", "sample", uso="!probar <codigo> <tu codigo python>",

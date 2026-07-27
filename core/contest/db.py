@@ -105,6 +105,7 @@ CREATE TABLE IF NOT EXISTS salientes (
     destino      TEXT NOT NULL,
     texto        TEXT NOT NULL,
     adjunto_path TEXT,
+    sticker      TEXT NOT NULL DEFAULT '',
     creado_en    TEXT NOT NULL,
     enviado_en   TEXT,
     intentos     INTEGER NOT NULL DEFAULT 0,
@@ -178,9 +179,29 @@ def conexion() -> sqlite3.Connection:
     return con
 
 
+#: columnas agregadas despues de la primera version del esquema.
+#: SQLite no tiene "ADD COLUMN IF NOT EXISTS", asi que se consulta el pragma.
+MIGRACIONES: list[tuple[str, str, str]] = [
+    # (tabla, columna, definicion)
+    ("salientes", "sticker", "TEXT NOT NULL DEFAULT ''"),
+]
+
+
+def _migrar() -> None:
+    """Agrega las columnas que falten. Idempotente y seguro sobre datos existentes."""
+    con = conexion()
+    for tabla, columna, definicion in MIGRACIONES:
+        existentes = {f["name"] for f in con.execute(f"PRAGMA table_info({tabla})")}
+        if not existentes:
+            continue                       # la tabla todavia no existe
+        if columna not in existentes:
+            con.execute(f"ALTER TABLE {tabla} ADD COLUMN {columna} {definicion}")
+
+
 def inicializar() -> None:
     """Crea el esquema si falta. Es idempotente: se puede llamar en cada arranque."""
     conexion().executescript(ESQUEMA)
+    _migrar()
 
 
 @contextmanager

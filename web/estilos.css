@@ -136,6 +136,51 @@ a {
 
 .vacio .icono .px-b { fill: var(--tinta-suave); opacity: 0.4; }
 
+/* --- Perove, la mascota ---------------------------------------------------- */
+
+/* La animacion se hace corriendo el sprite sheet con steps(), que es como se
+ * animaba en los juegos de verdad: no hay GIF, no hay JS, y cada frame aparece
+ * de golpe en vez de interpolarse. */
+.perove {
+    --lado: 40px;                 /* tamanio nativo de un frame */
+    --escala: 2;                  /* SIEMPRE entero, o el pixel art se rompe */
+    width: calc(var(--lado) * var(--escala));
+    height: calc(var(--lado) * var(--escala));
+    background-image: url("assets/perove-sheet.png");
+    background-repeat: no-repeat;
+    /* el sheet es de 4x4 frames, asi que escalado mide 4 lados de ancho */
+    background-size: calc(var(--lado) * var(--escala) * 4)
+                     calc(var(--lado) * var(--escala) * 4);
+    image-rendering: pixelated;
+    flex: none;
+}
+
+/* cada fila del sheet es una animacion */
+.perove-idle { animation: perove-frames 0.72s steps(4) infinite; background-position-y: 0; }
+.perove-wave { animation: perove-frames 0.56s steps(4) infinite;
+               background-position-y: calc(var(--lado) * var(--escala) * -1); }
+.perove-jump { animation: perove-frames 0.64s steps(4) infinite;
+               background-position-y: calc(var(--lado) * var(--escala) * -2); }
+.perove-cast { animation: perove-frames 0.60s steps(4) infinite;
+               background-position-y: calc(var(--lado) * var(--escala) * -3); }
+
+@keyframes perove-frames {
+    from { background-position-x: 0; }
+    to   { background-position-x: calc(var(--lado) * var(--escala) * -4); }
+}
+
+/* quien pidio menos movimiento se queda con el primer frame, quieto */
+@media (prefers-reduced-motion: reduce) {
+    .perove-idle, .perove-wave, .perove-jump, .perove-cast { animation: none; }
+}
+
+.marca .perove { --escala: 1; }
+
+.vacio .perove {
+    --escala: 2;
+    margin: 0 auto calc(var(--u) * 3);
+}
+
 /* --- bloques con relieve -------------------------------------------------- */
 
 .panel {

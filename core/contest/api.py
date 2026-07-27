@@ -80,6 +80,8 @@ class MensajeEntrante(BaseModel):
 class MensajeSaliente(BaseModel):
     texto: str
     destino: str = ""
+    #: nombre de un sticker de Perove, sin ruta ni extension (ej: "cast")
+    sticker: str = ""
 
 
 class RespuestaBot(BaseModel):
@@ -107,7 +109,8 @@ def recibir_mensaje(m: MensajeEntrante) -> RespuestaBot:
     if respuesta is None:
         return RespuestaBot()
 
-    mensajes = [MensajeSaliente(texto=respuesta.texto, destino=m.jid)]
+    mensajes = [MensajeSaliente(texto=respuesta.texto, destino=m.jid,
+                                sticker=respuesta.sticker)]
     mensajes += [MensajeSaliente(texto=t, destino=d) for d, t in respuesta.difundir]
     return RespuestaBot(mensajes=mensajes)
 
@@ -116,12 +119,14 @@ class Saliente(BaseModel):
     id: int
     destino: str
     texto: str
+    sticker: str = ""
 
 
 @app.get("/bot/salientes", response_model=list[Saliente], dependencies=[Depends(_autorizar)])
 def obtener_salientes() -> list[Saliente]:
     """Mensajes que el scheduler dejo listos para publicar."""
-    return [Saliente(id=m["id"], destino=m["destino"], texto=m["texto"])
+    return [Saliente(id=m["id"], destino=m["destino"], texto=m["texto"],
+                     sticker=m.get("sticker", ""))
             for m in scheduler.pendientes()]
 
 

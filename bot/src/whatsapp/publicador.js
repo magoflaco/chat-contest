@@ -10,6 +10,7 @@
 
 const core = require('../core/client');
 const config = require('../config');
+const stickers = require('./stickers');
 const { responder } = require('./handler');
 
 let reloj = null;
@@ -31,6 +32,7 @@ async function despachar(sock) {
 
             try {
                 await responder(sock, mensaje.destino, mensaje.texto, null);
+                await stickers.enviar(sock, mensaje.destino, mensaje.sticker);
                 await core.confirmarSaliente(mensaje.id);
                 console.log(`[publicador] enviado #${mensaje.id} a ${mensaje.destino}`);
             } catch (error) {

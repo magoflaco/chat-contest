@@ -65,10 +65,16 @@ class Contexto:
         return v[i] if i < len(v) else defecto
 
 
+#: stickers de Perove disponibles. El bot los busca en assets/stickers/perove-<X>.webp
+STICKERS = ("wave", "cast", "jump", "idle")
+
+
 @dataclass
 class Respuesta:
     """Lo que un comando devuelve. Los comandos pueden devolver un str pelado."""
     texto: str
+    #: nombre de un sticker de Perove a mandar junto con el texto (ver STICKERS)
+    sticker: str = ""
     adjuntos: list[Adjunto] = field(default_factory=list)
     #: mensajes extra a otros destinos (ej: avisar al grupo que alguien resolvio algo)
     difundir: list[tuple[str, str]] = field(default_factory=list)

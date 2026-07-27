@@ -96,7 +96,7 @@ function pintarRanking(filas) {
     if (!filas.length) {
         caja.innerHTML = `
             <div class="vacio">
-                <span class="icono-caja">${icono('copa', 48)}</span>
+                <span class="perove perove-idle"></span>
                 <p>Todavia no hay nadie en la tabla.</p>
                 <p class="chico">Se el primero: mandale <strong>!problemas</strong> al bot.</p>
             </div>`;
@@ -213,7 +213,7 @@ function pintarRonda(ronda) {
     if (!ronda) {
         caja.innerHTML = `
             <div class="panel vacio">
-                <span class="icono-caja">${icono('reloj', 48)}</span>
+                <span class="perove perove-idle"></span>
                 <p>No hay ninguna ronda abierta.</p>
                 <p class="chico">La proxima sale pronto. Se publican cada 3 dias.</p>
             </div>`;
@@ -246,7 +246,7 @@ function pintarHistorial(rondas) {
     if (!rondas.length) {
         caja.innerHTML = `
             <div class="panel vacio">
-                <span class="icono-caja">${icono('pergamino', 48)}</span>
+                <span class="perove perove-idle"></span>
                 <p>Todavia no se publico ninguna ronda.</p>
             </div>`;
         return;
@@ -331,7 +331,6 @@ async function cargar() {
     }
 }
 
-$('#logo').innerHTML = icono('terminal', 28);
 activarPestanias();
 cargar();
 

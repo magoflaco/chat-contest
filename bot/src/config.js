@@ -50,4 +50,7 @@ module.exports = {
 
     // tamano maximo de un .py adjunto que aceptamos descargar
     maxAdjuntoBytes: num('JUDGE_MAX_SOURCE_BYTES', 65536),
+
+    // stickers de Perove, generados por scripts/generar_stickers.py
+    stickersDir: path.join(RAIZ, 'assets', 'stickers'),
 };

@@ -6,7 +6,7 @@ from .. import db, format as fmt
 from ..config import config
 from ..rounds import ronda_actual
 from ..scoring import BASE_POR_DIFICULTAD, NOMBRE_DIFICULTAD
-from . import COMANDOS, PREFIJO, REGISTRO, Contexto, comando
+from . import COMANDOS, PREFIJO, REGISTRO, Contexto, Respuesta, comando
 
 
 @comando("help", "ayuda", "comandos", uso="!help [comando]",
@@ -50,8 +50,10 @@ def cmd_help(ctx: Contexto) -> str:
         "",
         LINEA_AYUDA,
         f"detalle de un comando: {PREFIJO}help entrega",
+        f"tabla y enunciados: {config.web_url}",
     ]
-    return "\n".join(lineas)
+    # Perove saluda solo con el listado completo, no con la ayuda de un comando suelto
+    return Respuesta("\n".join(lineas), sticker="wave")
 
 
 LINEA_AYUDA = "_las entregas van por privado_"

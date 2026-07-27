@@ -21,7 +21,7 @@ INTERVALO_SEG = 60
 _detener = threading.Event()
 
 
-def encolar(destino: str, texto: str) -> None:
+def encolar(destino: str, texto: str, sticker: str = "") -> None:
     """Deja un mensaje para que el gateway de WhatsApp lo despache.
 
     Se usa una cola en la base en vez de llamar al bot directo para que un corte
@@ -30,14 +30,14 @@ def encolar(destino: str, texto: str) -> None:
     if not destino:
         return
     db.ejecutar(
-        "INSERT INTO salientes (destino, texto, creado_en) VALUES (?, ?, ?)",
-        (destino, texto, db.iso()),
+        "INSERT INTO salientes (destino, texto, sticker, creado_en) VALUES (?, ?, ?, ?)",
+        (destino, texto, sticker, db.iso()),
     )
 
 
 def pendientes(limite: int = 20) -> list[dict]:
     return [dict(f) for f in db.consultar(
-        "SELECT id, destino, texto, adjunto_path FROM salientes "
+        "SELECT id, destino, texto, sticker FROM salientes "
         "WHERE enviado_en IS NULL AND intentos < 5 ORDER BY id LIMIT ?",
         (limite,),
     )]
@@ -82,9 +82,11 @@ def anunciar_ronda(ronda: Ronda) -> None:
         "  !entrega <codigo> <tu solucion>  entregar (por privado)",
         "",
         "resolver temprano vale mas puntos. suerte.",
+        "",
+        f"enunciados y tabla: {config.web_url}",
     ]
 
-    encolar(config.grupo_jid, "\n".join(lineas))
+    encolar(config.grupo_jid, "\n".join(lineas), sticker="jump")
 
 
 def anunciar_cierre(ronda: Ronda) -> None:
@@ -109,9 +111,10 @@ def anunciar_cierre(ronda: Ronda) -> None:
         "",
         "ya podes ver las editoriales: !editorial <codigo>",
         "tabla acumulada: !rank global",
+        f"historico completo: {config.web_url}",
     ]
 
-    encolar(config.grupo_jid, "\n".join(lineas))
+    encolar(config.grupo_jid, "\n".join(lineas), sticker="idle")
 
 
 def aviso_de_cierre(ronda: Ronda) -> None:

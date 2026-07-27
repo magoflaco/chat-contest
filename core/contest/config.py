@@ -120,6 +120,8 @@ class ConfigIA:
 @dataclass(frozen=True)
 class Config:
     bot_name: str = field(default_factory=lambda: _txt("BOT_NAME", "Chat Contest"))
+    #: URL publica del leaderboard, se cita en los mensajes del bot
+    web_url: str = field(default_factory=lambda: _txt("WEB_URL", "https://contest.itb.lat"))
     grupo_jid: str = field(default_factory=lambda: _txt("GRUPO_JID"))
     admins: tuple[str, ...] = field(default_factory=lambda: tuple(_lista("ADMINS")))
 
