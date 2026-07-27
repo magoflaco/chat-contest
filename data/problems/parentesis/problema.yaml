@@ -1,0 +1,40 @@
+slug: parentesis
+titulo: La formula del pizarron
+dificultad: 2
+tags: [pilas, strings, implementacion]
+autor: Club de Programacion
+limites:
+  tiempo_ms: 2000
+  memoria_mb: 128
+validacion:
+  tipo: tokens
+fuente:
+  tipo: original
+pistas:
+  - "Cada vez que ves un simbolo que abre, tenes que recordar cual fue. La estructura que sirve para eso es una pila."
+  - "Si aparece uno que cierra y la pila esta vacia, ya sabes que la respuesta es NO. Y al final la pila tiene que quedar vacia."
+editorial: |
+  El uso canonico de una pila.
+
+  - Simbolo que abre: se apila.
+  - Simbolo que cierra: si la pila esta vacia, es invalido. Si no, se desapila y se
+    verifica que el que sale sea del mismo tipo.
+  - Al terminar, la pila tiene que quedar **vacia**: si sobro algo, quedaron simbolos
+    sin cerrar.
+
+  Los dos errores tipicos son olvidarse de la verificacion final (y aceptar `((`) y
+  no chequear que el tipo coincida (y aceptar `([)]`).
+
+      pares = {')': '(', ']': '[', '}': '{'}
+      pila = []
+      for c in s:
+          if c in '([{':
+              pila.append(c)
+          else:
+              if not pila or pila.pop() != pares[c]:
+                  return False
+      return not pila
+
+  En Python, `list` ya es una pila: `append` y `pop` son O(1).
+
+  Complejidad: O(N) tiempo y memoria.

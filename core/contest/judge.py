@@ -145,7 +145,7 @@ def _correr_docker(trabajo: Path, techo_seg: float) -> dict:
         # el tmpfs va en /tmp y NO dentro de /work: Docker no puede crear el punto
         # de montaje adentro de un bind que ya esta montado de solo lectura.
         "--read-only",
-        "--tmpfs", "/tmp:rw,noexec,nosuid,size=16m",
+        "--tmpfs", "/tmp:rw,noexec,nosuid,size=48m",
         # limites de recursos
         "--memory", f"{config.juez.memoria_mb}m",
         "--memory-swap", f"{config.juez.memoria_mb}m",   # swap 0: no puede esquivar el limite

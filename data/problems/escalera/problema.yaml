@@ -1,0 +1,51 @@
+slug: escalera
+titulo: La escalera del gimnasio
+dificultad: 3
+tags: [programacion-dinamica, modulo, recurrencias]
+autor: Club de Programacion
+limites:
+  tiempo_ms: 2000
+  memoria_mb: 256
+validacion:
+  tipo: tokens
+fuente:
+  tipo: original
+subtareas:
+  - id: s1
+    peso: 35
+    descripcion: "N <= 20 (se puede probar todo)"
+    semillas: "1-2,5-8"
+  - id: s2
+    peso: 65
+    descripcion: "N <= 1000000"
+    semillas: "3-4,9-15"
+pistas:
+  - "Para llegar al escalon N, el ultimo paso fue de 1, de 2 o de 3 escalones. De donde veniste en cada caso?"
+  - "Los numeros crecen exponencialmente. Aplica el modulo en cada paso, no al final."
+  - "Con N hasta un millon, una recursion se queda sin pila. Calcula de abajo hacia arriba con un ciclo."
+editorial: |
+  Recurrencia directa: para llegar al escalon `i`, el ultimo paso vino de `i-1`, de
+  `i-2` o de `i-3`. Entonces
+
+      dp[i] = dp[i-1] + dp[i-2] + dp[i-3]
+
+  con `dp[0] = 1` (una forma de estar parado abajo sin subir nada), `dp[1] = 1` y
+  `dp[2] = 2`. Es la sucesion tribonacci.
+
+  Tres cosas que hay que cuidar:
+
+  1. **El modulo va en cada paso.** Si se aplica solo al final, los enteros crecen a
+     millones de digitos. Python no se rompe (soporta enteros grandes) pero se
+     arrastra, y el veredicto es TLE.
+  2. **Nada de recursion.** Con N = 10^6 la pila revienta mucho antes del limite de
+     tiempo, incluso con memoizacion. De abajo hacia arriba con un ciclo.
+  3. Alcanza con **tres variables**, no hace falta el arreglo entero:
+
+         a, b, c = 1, 1, 2
+         for _ in range(3, n + 1):
+             a, b, c = b, c, (a + b + c) % MOD
+
+     Con N = 10^6 el arreglo tampoco molesta, pero la version de tres variables usa
+     O(1) memoria y es la que conviene tener en la cabeza.
+
+  Complejidad: O(N) tiempo, O(1) memoria.

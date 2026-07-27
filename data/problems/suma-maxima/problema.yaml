@@ -1,0 +1,38 @@
+slug: suma-maxima
+titulo: La mejor racha de ventas
+dificultad: 2
+tags: [kadane, programacion-dinamica, subarreglos]
+autor: Club de Programacion
+limites:
+  tiempo_ms: 2000
+  memoria_mb: 128
+validacion:
+  tipo: tokens
+fuente:
+  tipo: original
+pistas:
+  - "Probar todos los tramos posibles es O(N^2) y no entra. Pensa en recorrer una sola vez."
+  - "En cada posicion tenes una sola decision: extender el tramo que venias armando, o empezar uno nuevo desde aca. Elegi la que da mas."
+  - "Cuidado con el caso en que todos los numeros son negativos: el tramo tiene que tener al menos un dia."
+editorial: |
+  Es el problema de la maxima suma de un subarreglo contiguo, y se resuelve con el
+  **algoritmo de Kadane**.
+
+  La idea: al llegar a la posicion `i` hay una sola decision, extender el tramo que
+  venias armando o empezar uno nuevo en `i`. Conviene extender si lo acumulado hasta
+  `i-1` es positivo, porque le suma; si es negativo, arrastrarlo solo resta.
+
+      actual = mejor = a[0]
+      for x in a[1:]:
+          actual = max(x, actual + x)
+          mejor = max(mejor, actual)
+
+  El detalle que hace fallar a mucha gente: **inicializar en 0**. Si todos los numeros
+  son negativos, `mejor` se queda en 0 y devuelve un tramo vacio, que el enunciado no
+  permite. Hay que inicializar con `a[0]`.
+
+  Kadane es en el fondo una programacion dinamica de una dimension donde `dp[i]` es la
+  mejor suma de un tramo que **termina** en `i`, con la fila anterior colapsada en una
+  sola variable.
+
+  Complejidad: O(N) tiempo, O(1) memoria extra.

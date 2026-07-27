@@ -1,0 +1,49 @@
+slug: dsu-amigos
+titulo: Los grupos del club
+dificultad: 4
+tags: [dsu, union-find, grafos, componentes-conexas]
+autor: Club de Programacion
+limites:
+  tiempo_ms: 4000
+  memoria_mb: 256
+validacion:
+  tipo: tokens
+fuente:
+  tipo: original
+pistas:
+  - "Hacer un recorrido del grafo despues de cada amistad seria O(Q x N). Necesitas una estructura que se actualice de a poco."
+  - "Union-Find (DSU) mantiene conjuntos disjuntos con union y busqueda casi en O(1). Guarda ademas el tamanio de cada conjunto."
+  - "Sin compresion de caminos ni union por tamanio, el DSU degenera a O(N) por operacion. Implementa las dos optimizaciones."
+editorial: |
+  Es el caso de uso canonico de **DSU (Union-Find)**, tambien llamado conjuntos
+  disjuntos.
+
+  Cada persona arranca en su propio conjunto. Cada amistad une dos conjuntos. La
+  consulta pide el tamanio del conjunto de alguien, que se guarda en la raiz.
+
+  Las dos optimizaciones no son opcionales:
+
+  - **Compresion de caminos**: al buscar la raiz, se reengancha cada nodo del camino
+    directo a la raiz. Aplana el arbol.
+  - **Union por tamanio** (o por rango): al unir, el arbol chico cuelga del grande.
+    Evita construir una cadena larga.
+
+  Con las dos, cada operacion es O(alfa(N)) amortizado, donde alfa es la inversa de
+  Ackermann: menor que 5 para cualquier N que exista en la practica. Sin ellas, un
+  adversario puede armar una cadena y cada operacion pasa a ser O(N).
+
+      def buscar(x):
+          raiz = x
+          while padre[raiz] != raiz:
+              raiz = padre[raiz]
+          while padre[x] != raiz:      # compresion, iterativa
+              padre[x], x = raiz, padre[x]
+          return raiz
+
+  La version iterativa de `buscar` importa: la recursiva revienta la pila con N = 200000
+  si el arbol quedo profundo.
+
+  Unir a dos que ya estan en el mismo grupo no tiene que hacer nada. Es un caso que
+  hay que contemplar explicitamente.
+
+  Complejidad: O((N + Q) alfa(N)).

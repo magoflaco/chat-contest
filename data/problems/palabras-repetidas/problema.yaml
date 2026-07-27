@@ -1,0 +1,34 @@
+slug: palabras-repetidas
+titulo: El discurso del director
+dificultad: 2
+tags: [strings, diccionarios, conteo]
+autor: Club de Programacion
+limites:
+  tiempo_ms: 2000
+  memoria_mb: 256
+validacion:
+  tipo: tokens
+fuente:
+  tipo: original
+pistas:
+  - "Un diccionario de palabra a cantidad resuelve el conteo. Lo dificil es el desempate."
+  - "Cuando hay que ordenar por un criterio y desempatar por otro, la clave de ordenamiento es una tupla. Fijate que pasa si el primer criterio va al reves que el segundo."
+editorial: |
+  Contar es directo con `Counter`. Lo interesante es el desempate: hay que ordenar por
+  frecuencia **descendente** y, a igual frecuencia, alfabeticamente **ascendente**.
+
+  Como los dos criterios van en sentidos opuestos, no alcanza con `reverse=True`. Dos
+  formas de resolverlo:
+
+      # negar el criterio numerico
+      sorted(conteo.items(), key=lambda par: (-par[1], par[0]))
+
+      # u ordenar dos veces, aprovechando que sort() es estable
+      items.sort(key=lambda par: par[0])
+      items.sort(key=lambda par: par[1], reverse=True)
+
+  La primera es la idiomatica. La segunda funciona porque el `sort` de Python es
+  **estable**: al reordenar por frecuencia, las palabras que ya estaban alfabeticas
+  conservan su orden relativo. Vale la pena entender esto, aparece todo el tiempo.
+
+  Complejidad: O(N log N) por el ordenamiento.

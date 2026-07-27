@@ -37,11 +37,16 @@ try:
 except ImportError:  # pragma: no cover - Windows
     resource = None  # type: ignore[assignment]
 
-#: cuanto de la salida devolvemos. mas que esto no puede ser una respuesta valida.
-MAX_SALIDA = 1 << 20        # 1 MiB
+#: cuanto de la salida devolvemos.
+#:
+#: Tiene que dar lugar a respuestas legitimas grandes: un problema con 200000
+#: numeros de salida son mas de 2 MB. Si el techo queda corto, una solucion
+#: correcta recibe WA sin que nadie entienda por que. Cuando se supera, NO se
+#: trunca en silencio: se devuelve un veredicto explicito.
+MAX_SALIDA = 8 << 20        # 8 MiB
 MAX_STDERR = 4096
-#: techo duro de escritura del proceso hijo
-MAX_ARCHIVO = 8 << 20       # 8 MiB
+#: techo duro de escritura del proceso hijo (RLIMIT_FSIZE)
+MAX_ARCHIVO = 32 << 20      # 32 MiB
 
 
 def _limitar(memoria_mb: int, cpu_seg: int):
@@ -137,9 +142,15 @@ def correr_caso(fuente: Path, entrada: str, tiempo_ms: int, memoria_mb: int, cwd
 
     transcurrido = int((time.monotonic() - arranque) * 1000)
 
+    # se lee un byte de mas para poder distinguir "justo entra" de "se paso"
+    desbordo = False
     try:
         with ruta_salida.open("rb") as f:
-            salida = f.read(MAX_SALIDA).decode("utf-8", errors="replace")
+            crudo = f.read(MAX_SALIDA + 1)
+        if len(crudo) > MAX_SALIDA:
+            desbordo = True
+            crudo = crudo[:MAX_SALIDA]
+        salida = crudo.decode("utf-8", errors="replace")
     except OSError:
         salida = ""
     finally:
@@ -151,6 +162,13 @@ def correr_caso(fuente: Path, entrada: str, tiempo_ms: int, memoria_mb: int, cwd
     if expiro:
         return {"estado": "TLE", "detalle": f"supero el limite de {tiempo_ms} ms",
                 "tiempo_ms": transcurrido, "salida": salida, "stderr": err}
+
+    # se avisa explicitamente en vez de comparar una salida truncada: si no, una
+    # solucion que imprime de mas recibe un WA que no explica nada
+    if desbordo:
+        return {"estado": "RE",
+                "detalle": f"imprimio mas de {MAX_SALIDA // (1 << 20)} MB de salida",
+                "tiempo_ms": transcurrido, "salida": "", "stderr": err}
 
     if codigo != 0:
         if "MemoryError" in err:

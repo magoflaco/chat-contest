@@ -1,0 +1,68 @@
+slug: particiones
+titulo: Repartir el premio
+dificultad: 5
+tags: [programacion-dinamica, mochila, subset-sum, bitset]
+autor: Club de Programacion
+limites:
+  tiempo_ms: 5000
+  memoria_mb: 256
+validacion:
+  tipo: tokens
+fuente:
+  tipo: original
+subtareas:
+  - id: s1
+    peso: 30
+    descripcion: "N <= 20 (se puede probar todo con fuerza bruta)"
+    semillas: "1-2,5-8"
+  - id: s2
+    peso: 70
+    descripcion: "N <= 200 y suma <= 100000"
+    semillas: "3-4,9-15"
+pistas:
+  - "Probar todos los subconjuntos es 2^N. Con N=200 no hay maquina que aguante."
+  - "En realidad no importa QUE elementos elegis, solo QUE SUMAS podes formar. Eso reduce el espacio de estados enormemente."
+  - "Si podes formar una suma S, la mejor reparticion es la S mas cercana a la mitad del total."
+  - "En Python, un entero grande usado como mapa de bits hace el paso de la DP en una sola operacion: alcanzables |= alcanzables << valor."
+editorial: |
+  Es **subset sum** disfrazado. La observacion que lo desbloquea: no importa *que*
+  elementos van a cada grupo, solo *que sumas* se pueden formar. Si un grupo suma `S`,
+  el otro suma `total - S`, y la diferencia es `|total - 2S|`. Asi que hay que
+  encontrar la suma alcanzable mas cercana a `total / 2`.
+
+  La DP clasica es un arreglo de booleanos:
+
+      alcanzable = [False] * (total + 1)
+      alcanzable[0] = True
+      for v in valores:
+          for s in range(total, v - 1, -1):     # hacia atras, para no reusar v
+              if alcanzable[s - v]:
+                  alcanzable[s] = True
+
+  El recorrido **hacia atras** es esencial: hacia adelante estarias permitiendo usar el
+  mismo elemento varias veces, que es otro problema (mochila con repeticion).
+
+  Complejidad: O(N x suma) = 200 x 100000 = 2 x 10^7. En C++ vuela; en Python con
+  ciclos anidados es lento y da TLE.
+
+  El truco que lo hace entrar en Python es usar un **entero grande como mapa de bits**:
+  el bit `s` prendido significa "la suma `s` es alcanzable". Entonces todo el ciclo
+  interno se vuelve un solo desplazamiento:
+
+      alcanzables = 1                  # solo el bit 0
+      for v in valores:
+          alcanzables |= alcanzables << v
+
+  Los enteros grandes de Python estan implementados en C, asi que ese `<<` procesa
+  decenas de miles de bits por operacion. Pasa de 2x10^7 operaciones de Python a 200
+  operaciones sobre enteros grandes.
+
+  Despues se busca el bit prendido mas cercano a la mitad:
+
+      for s in range(total // 2, -1, -1):
+          if alcanzables >> s & 1:
+              print(total - 2 * s)
+              break
+
+  Este truco del bitset con enteros grandes es de lo mas util que se puede aprender
+  para competir en Python, y no aparece en casi ningun tutorial.

@@ -1,0 +1,32 @@
+slug: vuelto-del-kiosco
+titulo: El vuelto del kiosco
+dificultad: 1
+tags: [aritmetica, greedy, implementacion]
+autor: Club de Programacion
+limites:
+  tiempo_ms: 1000
+  memoria_mb: 64
+validacion:
+  tipo: tokens
+fuente:
+  tipo: original
+pistas:
+  - "Empeza por el billete mas grande que entra, y anda bajando."
+  - "Con esta lista de denominaciones el goloso SI funciona. No siempre es asi: fijate el problema del kiosco con monedas raras."
+editorial: |
+  Con denominaciones "canonicas" como las nuestras (1, 2, 5, 10, 20, 50, 100, 200,
+  500, 1000) el algoritmo goloso da el optimo: siempre conviene usar el billete mas
+  grande que entra.
+
+      for v in sorted(valores, reverse=True):
+          cantidad = vuelto // v
+          vuelto -= cantidad * v
+
+  Ojo que esto NO vale para cualquier conjunto de denominaciones. Con monedas de
+  1, 3 y 4 para formar 6, el goloso da 4+1+1 y el optimo es 3+3. Ese caso es el
+  problema "El kiosco del club", que se resuelve con programacion dinamica.
+
+  La diferencia entre los dos problemas es exactamente la que hay entre poder usar
+  un greedy y tener que demostrar que no se puede.
+
+  Complejidad: O(1), son 10 denominaciones fijas.

@@ -1,0 +1,46 @@
+slug: mediana-movil
+titulo: El sensor del invernadero
+dificultad: 4
+tags: [heaps, ventana-deslizante, estructuras-de-datos]
+autor: Club de Programacion
+limites:
+  tiempo_ms: 5000
+  memoria_mb: 256
+validacion:
+  tipo: tokens
+fuente:
+  tipo: original
+pistas:
+  - "Ordenar cada ventana desde cero es O(N K log K) y no entra. Necesitas mantener la ventana ordenada mientras se mueve."
+  - "Si partis la ventana en dos mitades (los chicos y los grandes), la mediana esta siempre en el borde entre las dos. Que estructura te da el maximo de un conjunto en O(log K)?"
+  - "Sacar un elemento del medio de un heap no se puede. Pero si podes marcarlo como borrado y descartarlo cuando llegue a la cima. Se llama borrado perezoso."
+editorial: |
+  Se mantienen **dos heaps** que parten la ventana en dos mitades:
+
+  - `bajos`: max-heap con la mitad chica (en Python, un min-heap con los valores negados)
+  - `altos`: min-heap con la mitad grande
+
+  Se mantiene el invariante `len(bajos) == len(altos)` o `len(bajos) == len(altos) + 1`.
+  Con eso la mediana esta siempre en la cima de `bajos`, en O(1).
+
+  El problema es sacar el elemento que sale de la ventana: **no se puede borrar del
+  medio de un heap**. La solucion es el **borrado perezoso**: se lleva un contador de
+  cuantas copias de cada valor hay pendientes de borrar, y cuando una de esas llega a
+  la cima se descarta ahi.
+
+      por_borrar = Counter()
+      # al sacar x de la ventana:
+      por_borrar[x] += 1
+      # y antes de leer una cima:
+      while heap and por_borrar[cima(heap)]:
+          por_borrar[cima(heap)] -= 1
+          heappop(heap)
+
+  Despues de cada operacion hay que **rebalancear** los tamanios, porque el borrado
+  perezoso puede desbalancearlos.
+
+  Complejidad: O(N log K).
+
+  Alternativas: `SortedList` de la libreria `sortedcontainers` lo resuelve en cuatro
+  lineas, pero no esta en la biblioteca estandar. Con dos heaps se entiende que esta
+  pasando, que es de lo que se trata.

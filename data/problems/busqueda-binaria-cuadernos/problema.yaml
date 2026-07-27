@@ -1,0 +1,43 @@
+slug: busqueda-binaria-cuadernos
+titulo: Repartir los cuadernos
+dificultad: 3
+tags: [busqueda-binaria, busqueda-en-respuesta, greedy]
+autor: Club de Programacion
+limites:
+  tiempo_ms: 3000
+  memoria_mb: 256
+validacion:
+  tipo: tokens
+fuente:
+  tipo: original
+pistas:
+  - "No busques directamente la respuesta. Preguntate: dado un limite L, alcanzan M dias para copiar todo si nadie copia mas de L paginas por dia?"
+  - "Esa pregunta se responde en O(N) con un recorrido goloso. Y si L funciona, cualquier valor mayor tambien: eso es lo que habilita la busqueda binaria."
+  - "El limite inferior no es 0: tiene que ser al menos el cuaderno mas grande, porque un cuaderno no se puede partir."
+editorial: |
+  El nombre tecnico es **busqueda binaria en la respuesta**, y es una de las tecnicas
+  que mas aparece en olimpiadas.
+
+  La clave es dar vuelta el problema. En vez de calcular el minimo directamente,
+  definimos:
+
+      alcanza(L) = "con un limite de L paginas por dia, se puede terminar en M dias?"
+
+  Eso se responde en O(N) recorriendo los cuadernos y abriendo un dia nuevo cada vez
+  que el actual se pasaria de L.
+
+  Lo importante es que `alcanza` es **monotona**: si L funciona, cualquier valor mayor
+  tambien. Eso significa que la funcion tiene forma NO NO NO SI SI SI, y el punto donde
+  cambia se encuentra con busqueda binaria.
+
+  Los limites del rango importan:
+
+  - **inferior**: `max(paginas)`, porque un cuaderno no se puede partir entre dos dias.
+    Arrancar en 0 o en 1 da una respuesta invalida.
+  - **superior**: `sum(paginas)`, que es hacerlo todo en un dia.
+
+  Complejidad: O(N log(suma)).
+
+  Este mismo esquema resuelve muchisimos problemas: "minimizar el maximo",
+  "maximizar el minimo", "el menor tiempo tal que...". Cuando veas esas frases,
+  pensa en busqueda binaria en la respuesta.

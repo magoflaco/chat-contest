@@ -1,0 +1,27 @@
+slug: mayor-y-menor
+titulo: El registro de la biblioteca
+dificultad: 1
+tags: [arreglos, minimos-y-maximos, implementacion]
+autor: Club de Programacion
+limites:
+  tiempo_ms: 2000
+  memoria_mb: 128
+validacion:
+  tipo: tokens
+fuente:
+  tipo: original
+pistas:
+  - "Podes resolverlo en un solo recorrido, guardando el maximo y el minimo vistos hasta ahora."
+  - "Cuidado con inicializar el maximo en 0: si todos los valores fueran negativos, el resultado quedaria mal. Inicializa con el primer elemento."
+editorial: |
+  Un recorrido guardando el maximo y el minimo, y despues restar.
+
+  El error clasico es inicializar `maximo = 0` y `minimo = 0`. Si todos los valores
+  son negativos, el maximo queda en 0 y la respuesta sale mal. Lo correcto es
+  inicializar ambos con el **primer elemento**, o usar `float('-inf')` y
+  `float('inf')`.
+
+  En Python alcanza con `max(a) - min(a)`, que hace dos recorridos pero es O(N) igual
+  y es mas legible. Escribir el ciclo a mano tambien esta bien y es buen ejercicio.
+
+  Complejidad: O(N).

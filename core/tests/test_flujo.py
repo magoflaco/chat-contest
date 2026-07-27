@@ -267,3 +267,25 @@ def test_un_comando_que_revienta_no_tumba_el_bot():
 
     r = commands.despachar(_ctx("!comandoquerompe"))
     assert r and "rompio" in r.texto
+
+
+# --- regresion: salidas grandes ------------------------------------------------
+
+def test_una_salida_grande_no_se_trunca_en_silencio(ronda):
+    """El juez cortaba la salida en 1 MiB y devolvia WA sin explicar nada.
+
+    Un problema con 200000 numeros de respuesta pasa los 2 MB, asi que una
+    solucion correcta recibia WA. Ahora el techo es 8 MiB y, si se supera, el
+    veredicto lo dice explicitamente en vez de comparar una salida cortada.
+    """
+    import importlib.util
+    from contest.config import RAIZ
+
+    spec = importlib.util.spec_from_file_location("runner", RAIZ / "judge" / "runner.py")
+    runner = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(runner)
+
+    # 200000 numeros de hasta 10 digitos son mas de 2 MB
+    assert runner.MAX_SALIDA >= 8 << 20, "el techo corta respuestas legitimas"
+    # y el techo de escritura del hijo tiene que ser mayor que lo que leemos
+    assert runner.MAX_ARCHIVO > runner.MAX_SALIDA
