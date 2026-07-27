@@ -40,6 +40,15 @@ def _validar(_args) -> int:
     for d in sorted(por_dificultad):
         print(f"  dificultad {d}: {por_dificultad[d]}")
 
+    pendientes = problems.borradores()
+    if pendientes:
+        print(f"\n{len(pendientes)} borrador(es) fuera del banco, "
+              f"esperando enunciado y solucion:")
+        for slug in pendientes[:10]:
+            print(f"  {slug}")
+        if len(pendientes) > 10:
+            print(f"  ... y {len(pendientes) - 10} mas")
+
     return 1 if errores else 0
 
 
@@ -49,6 +58,7 @@ def _probar_todo(args) -> int:
     Es la red de seguridad del banco: si un problema tiene un test mal, se ve aca
     y no cuando un chico entrega una solucion correcta y le da WA.
     """
+    # `banco` ya excluye los borradores, que por definicion no tienen solucion
     banco = problems.banco(refrescar=True)
     if args.slug:
         banco = {k: v for k, v in banco.items() if k == args.slug}

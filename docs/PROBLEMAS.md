@@ -48,6 +48,21 @@ dificultad: 3               # entero de 1 a 5
 
 La dificultad determina el puntaje base: 100, 200, 350, 550 y 800.
 
+### Borrador
+
+```yaml
+borrador: true
+```
+
+Un problema marcado así **queda fuera del banco**: no lo carga `banco()` y por lo tanto
+no puede salir sorteado en una ronda. Sirve para los problemas a medio terminar,
+típicamente los recién importados de COCI, que todavía no tienen enunciado propio ni
+solución de referencia.
+
+`python -m contest.cli validar` los lista aparte, para que se sepa qué hay pendiente.
+
+Cuando el problema esté completo, sacá el campo.
+
 ### Límites
 
 ```yaml
@@ -103,6 +118,9 @@ fuente:
 
 Si `tipo` no es `original`, el campo `nombre` es **obligatorio** y el bot muestra la
 atribución al pie del enunciado automáticamente.
+
+Para COCI hay un importador dedicado: ver la sección correspondiente en
+[CONTRIBUTING.md](../CONTRIBUTING.md#traer-problemas-de-coci).
 
 Antes de importar un problema de otra competencia, leé la advertencia sobre
 redistribución en [CONTRIBUTING.md](../CONTRIBUTING.md#aportar-un-problema-de-otra-competencia).

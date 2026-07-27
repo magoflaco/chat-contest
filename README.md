@@ -30,7 +30,7 @@ que se puede aportar sin tocar una línea de JavaScript. Ver [CONTRIBUTING.md](C
 |----------|---------|----------|
 | `core/`  | Toda la lógica: comandos, puntaje, rondas, ranking, IA | Python |
 | `judge/` | El sandbox que ejecuta las entregas | Python + Docker |
-| `data/`  | El banco de problemas | YAML + Python |
+| `data/`  | El banco de problemas (20 originales) | YAML + Python |
 | `bot/`   | Gateway de WhatsApp. Traduce y nada más | JavaScript |
 | `web/`   | Leaderboard público | HTML + CSS + JS, sin build |
 

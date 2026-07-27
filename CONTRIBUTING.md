@@ -187,6 +187,59 @@ Contá en la descripción de dónde salió la idea y qué técnica entrena.
 
 ---
 
+## Traer problemas de COCI
+
+COCI (Croatian Open Competition in Informatics) es **la mejor fuente que
+encontramos**, y vale la pena entender por qué.
+
+Casi todos los jueces online (Kattis, Codeforces, AtCoder) publican solo los casos de
+ejemplo. Los tests ocultos no son públicos, y sin ellos no se puede juzgar nada: las
+herramientas tipo `kattis-cli` bajan samples, que no nos alcanzan.
+
+COCI en cambio publica en [hsin.hr/coci/archive](https://hsin.hr/coci/archive/) los
+enunciados, **los datos de prueba completos** y las soluciones de todas sus
+competencias desde 2006/2007. Son 6 contests por año, 5 tareas por contest, casi 20
+años: unas 500 tareas con tests reales. Y sus casos vienen ya agrupados por subtarea,
+que mapea directo a nuestro formato.
+
+```bash
+# ver qué trae un contest, sin escribir nada
+python scripts/importar_coci.py 2020_2021 1 --listar
+
+# importar una tarea
+python scripts/importar_coci.py 2020_2021 1 --tarea patkice --dificultad 3
+```
+
+### Lo que el importador NO hace
+
+Trae los tests, la estructura de subtareas y la atribución. **No trae el enunciado ni
+la solución**, y marca el problema con `borrador: true`, que lo deja fuera del banco:
+no puede salir sorteado en una ronda hasta que alguien lo complete.
+
+Falta hacer dos cosas por problema, y las dos son trabajo humano:
+
+1. **Escribir el enunciado.** El original está en un PDF y hay que redactar un resumen
+   **propio** en español. No copies el texto: COCI publica su archivo para que la gente
+   practique, pero no da una licencia explícita de redistribución. Un resumen tuyo con
+   atribución y link es seguro; una copia textual en un repo público no lo es.
+2. **Escribir `solucion.py`.** Los `.ans` vienen de COCI y son correctos, así que la
+   solución no hace falta para juzgar; hace falta para que la CI pueda verificar que
+   los tests siguen sanos y para que quede una referencia de cómo se resuelve.
+
+Después:
+
+```bash
+cd core && python -m contest.cli probar-todo --slug coci-20-1-patkice
+```
+
+y sacá el `borrador: true` del YAML.
+
+Un problema importado bien hecho es un aporte grande: te obliga a resolverlo, a
+entender por qué las subtareas están donde están, y a escribir un enunciado claro.
+Es la mejor forma de aprender a diseñar problemas.
+
+---
+
 ## Aportar un problema de otra competencia
 
 Se puede, con dos condiciones: **atribución completa** y **verificar la licencia**.

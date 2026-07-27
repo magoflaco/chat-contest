@@ -1,0 +1,25 @@
+slug: coci-20-1-patkice
+titulo: Patkice
+dificultad: 3
+borrador: true
+tags: []
+autor: ''
+limites:
+  tiempo_ms: 2000
+  memoria_mb: 256
+validacion:
+  tipo: tokens
+fuente:
+  tipo: otro
+  nombre: COCI 2020/2021, contest 1, tarea patkice
+  url: https://hsin.hr/coci/archive/2020_2021/contest1_tasks.pdf
+  anio: 2020
+  licencia: archivo publico de hsin.hr, publicado para practica
+editorial: ''
+subtareas:
+- id: s1
+  peso: 50
+  descripcion: subtarea 1 de COCI (10 casos)
+- id: s2
+  peso: 50
+  descripcion: subtarea 2 de COCI (20 casos)

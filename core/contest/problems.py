@@ -82,6 +82,10 @@ class Problema:
     dificultad: int
     enunciado: str
     directorio: Path
+    #: los problemas a medio terminar (tipicamente recien importados, sin enunciado
+    #: propio ni solucion de referencia) quedan fuera del banco: no pueden salir
+    #: sorteados en una ronda hasta que alguien los complete
+    borrador: bool = False
     tags: tuple[str, ...] = ()
     autor: str = ""
     tiempo_ms: int = 2000
@@ -202,6 +206,7 @@ def cargar(directorio: Path) -> Problema:
         dificultad=dificultad,
         enunciado=enunciado,
         directorio=directorio,
+        borrador=bool(datos.get("borrador", False)),
         tags=tuple(str(t).strip().lower() for t in (datos.get("tags") or ())),
         autor=str(datos.get("autor", "")).strip(),
         tiempo_ms=tiempo_ms,
@@ -249,6 +254,9 @@ def _cache_banco() -> dict[str, Problema]:
             # un problema roto no puede tumbar todo el banco; se avisa y se saltea
             print(f"[problemas] se ignora {d.name}: {e}")
             continue
+        if p.borrador:
+            # esta a medio terminar: no puede salir sorteado en una ronda
+            continue
         banco[p.slug] = p
     return banco
 
@@ -266,6 +274,24 @@ def obtener(slug: str) -> Problema | None:
 
 def por_dificultad(dificultad: int) -> list[Problema]:
     return [p for p in banco().values() if p.dificultad == dificultad]
+
+
+def borradores() -> list[str]:
+    """Slugs de los problemas marcados `borrador: true`, que estan fuera del banco."""
+    raiz = config.dir_problemas
+    if not raiz.is_dir():
+        return []
+
+    pendientes = []
+    for d in sorted(raiz.iterdir()):
+        if not d.is_dir() or d.name.startswith((".", "_")):
+            continue
+        try:
+            if cargar(d).borrador:
+                pendientes.append(d.name)
+        except ProblemaInvalido:
+            continue
+    return pendientes
 
 
 def validar_todos() -> list[str]:
