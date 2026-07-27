@@ -222,6 +222,7 @@ En Windows, sin Docker, podés poner `JUDGE_BACKEND=subprocess` para probar el f
 - [docs/ANTITRAMPA.md](docs/ANTITRAMPA.md) — las capas de defensa
 - [docs/PROBLEMAS.md](docs/PROBLEMAS.md) — el formato de un problema, campo por campo
 - [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md) — VPS y Cloudflare Pages
+- [docs/DISENIO.md](docs/DISENIO.md) — cómo tocar la web sin romperle el estilo
 
 ---
 

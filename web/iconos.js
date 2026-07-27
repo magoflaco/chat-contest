@@ -241,14 +241,26 @@ const PIXELES = {
     },
 };
 
+/** Lado de la grilla en la que estan dibujados todos los iconos. */
+const GRILLA = 16;
+
 /**
  * Devuelve el markup SVG de un icono.
+ *
+ * El tamanio se redondea al multiplo de 16 mas cercano y nunca baja de 16. No
+ * es un capricho: el dibujo son cuadrados de 1x1 en una grilla de 16, y a 12 o
+ * a 20 px cada cuadrado mide 0.75 o 1.25 px. Con `shape-rendering: crispEdges`
+ * el navegador los redondea de a uno, asi que unos quedan de 1 px y otros
+ * desaparecen: el icono se ve como una manchita o como un recuadro vacio.
+ *
  * @param {string} nombre  clave de PIXELES
- * @param {number} tamanio lado en pixeles CSS
+ * @param {number} tamanio lado en pixeles CSS; se ajusta a un multiplo de 16
  */
-export function icono(nombre, tamanio = 16) {
+export function icono(nombre, tamanio = GRILLA) {
     const sprite = PIXELES[nombre];
     if (!sprite) return '';
+
+    tamanio = Math.max(GRILLA, Math.round(tamanio / GRILLA) * GRILLA);
 
     const rect = ([x, y], clase) =>
         `<rect x="${x}" y="${y}" width="1" height="1" class="${clase}"/>`;

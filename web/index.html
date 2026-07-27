@@ -2,9 +2,9 @@
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Chat Contest - Tabla de posiciones</title>
-    <meta name="theme-color" content="#c3b1ee">
+    <meta name="theme-color" content="#aad0f2">
     <meta name="description" content="Liga de problemas de Python del club de programacion.">
     <meta name="color-scheme" content="light dark">
     <link rel="stylesheet" href="estilos.css">
@@ -15,18 +15,25 @@
     <link rel="icon" type="image/png" sizes="66x66" href="assets/favicon-64.png">
     <link rel="icon" type="image/png" sizes="132x132" href="assets/favicon-128.png">
     <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+    <!-- el sheet de Perove se pide temprano: aparece en la cabecera, arriba de todo -->
+    <link rel="preload" as="image" href="assets/perove-sheet.png">
 </head>
 <body>
 <div class="envoltorio">
 
     <header class="cabecera">
         <div class="marca">
-            <span class="perove perove-wave" role="img" aria-label="Perove, la mascota del club"></span>
+            <span class="perove perove-idle" id="perove-marca"
+                  role="img" aria-label="Perove, la mascota del club"></span>
             <span class="marca-texto">
                 <h1>Chat Contest</h1>
                 <small>club de programacion</small>
             </span>
         </div>
+        <p class="pulso" id="pulso">
+            <span class="punto frio"></span>
+            <span>conectando</span>
+        </p>
     </header>
 
     <div id="aviso-error" class="error" hidden></div>
@@ -42,14 +49,39 @@
     <section class="seccion" id="seccion-ranking" role="tabpanel" aria-labelledby="tab-ranking">
         <div class="rejilla-fichas" id="fichas"></div>
 
+        <div class="podio" id="podio" hidden></div>
+
         <div class="detalle panel" id="detalle" hidden></div>
 
-        <div class="panel">
-            <h2>Tabla de posiciones</h2>
-            <p class="chico tenue">Toca una fila para ver el detalle del participante.</p>
-            <div class="tabla-caja" id="tabla-ranking">
-                <p class="cargando">cargando</p>
+        <div class="columnas">
+            <div class="panel">
+                <h2>Tabla de posiciones</h2>
+                <p class="chico tenue">Toca una fila para ver el detalle del participante.</p>
+                <div class="tabla-caja" id="tabla-ranking">
+                    <p class="cargando">cargando</p>
+                </div>
             </div>
+
+            <aside class="panel">
+                <h2>Como entrar</h2>
+                <p class="chico">Escribile al bot por privado en WhatsApp.</p>
+                <ol class="pasos">
+                    <li>
+                        <pre class="codigo">!problemas</pre>
+                        <span class="chico tenue">Lista lo que hay abierto ahora.</span>
+                    </li>
+                    <li>
+                        <pre class="codigo">!probar R1-A
+print(input())</pre>
+                        <span class="chico tenue">Corre los ejemplos sin gastar intentos.</span>
+                    </li>
+                    <li>
+                        <pre class="codigo">!entrega R1-A
+print(input())</pre>
+                        <span class="chico tenue">Tu solucion, en el mismo mensaje.</span>
+                    </li>
+                </ol>
+            </aside>
         </div>
     </section>
 

@@ -114,3 +114,29 @@ jobs:
             require('./src/whatsapp/conexion');
             console.log('todos los modulos cargan');
           "
+
+  arte:
+    name: Arte pixel regenerable
+    runs-on: ubuntu-latest
+
+    # Los PNG de web/assets estan versionados (Cloudflare Pages sirve la carpeta
+    # tal cual, sin build), pero se generan con un script. Si alguien retoca un
+    # PNG a mano el dibujo deja de estar en el codigo y no hay forma de volver a
+    # producirlo. Este job vuelve a generarlos y falla si algo cambio.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar Pillow
+        run: pip install pillow
+
+      - name: Regenerar las decoraciones y los favicons
+        run: |
+          python scripts/generar_decoraciones.py
+          python scripts/generar_favicon.py
+
+      - name: Los archivos generados tienen que coincidir con los del repo
+        run: git diff --exit-code -- web/assets web/favicon.ico

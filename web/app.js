@@ -6,11 +6,15 @@
 
 import { icono } from './iconos.js';
 import { esc, panelEnunciado } from './enunciados.js';
+import { iniciarFondo, chispear } from './fondo.js';
+import * as perove from './perove.js';
 
 const API = (window.CONTEST_API || '').replace(/\/$/, '');
 const REFRESCO_MS = Number(window.CONTEST_REFRESCO_MS) || 0;
 
 const $ = (sel) => document.querySelector(sel);
+
+const QUIETO = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 async function traer(ruta) {
     const respuesta = await fetch(`${API}${ruta}`, { headers: { Accept: 'application/json' } });
@@ -22,13 +26,23 @@ function mostrarError(mensaje) {
     const caja = $('#aviso-error');
     caja.hidden = false;
     caja.innerHTML =
-        `<strong>No se pudo cargar la informacion.</strong><br>` +
+        `<span class="icono-caja">${icono('terminal', 32)}</span>` +
+        `<span><strong>No se pudo cargar la informacion.</strong><br>` +
         `<span class="chico">${esc(mensaje)}</span><br>` +
-        `<span class="chico tenue">Revisa que el core este levantado en ${esc(API)}.</span>`;
+        `<span class="chico tenue">Revisa que el core este levantado en ${esc(API)}.</span></span>`;
+    perove.dice('Se me cayo la conexion con el servidor.', 8000);
+    perove.descansa();
 }
 
 function limpiarError() {
     $('#aviso-error').hidden = true;
+}
+
+/** El semaforo de la cabecera: verde cuando la API contesta. */
+function marcarPulso(vivo, detalle) {
+    const caja = $('#pulso');
+    caja.innerHTML =
+        `<span class="punto${vivo ? '' : ' frio'}"></span><span>${esc(detalle)}</span>`;
 }
 
 // --- formato ------------------------------------------------------------------
@@ -58,30 +72,111 @@ function fecha(iso) {
         { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
+/** Que porcentaje de la ronda queda por delante, de 0 a 100.
+ *
+ *  Se calcula con las fechas y no con `horas_restantes` sola, porque las rondas
+ *  no siempre duran lo mismo: una de 72 h y una de 24 h con 12 h restantes no
+ *  estan en el mismo punto. */
+function porcentajeRestante(ronda) {
+    const inicio = Date.parse(ronda.inicio);
+    const fin = Date.parse(ronda.fin);
+    if (!Number.isFinite(inicio) || !Number.isFinite(fin) || fin <= inicio) return 0;
+
+    const fraccion = (fin - Date.now()) / (fin - inicio);
+    return Math.round(Math.max(0, Math.min(1, fraccion)) * 100);
+}
+
 function barraDificultad(nivel) {
     const bloques = Array.from({ length: 5 }, (_, i) =>
         `<span class="bloque-dif${i < nivel ? ' lleno' : ''}"></span>`).join('');
     return `<span class="dificultad dif-${nivel}" title="Dificultad ${nivel} de 5">${bloques}</span>`;
 }
 
+/** Cuenta desde cero hasta el valor final. Es un detalle chico pero hace que la
+ *  pagina se sienta viva al entrar en vez de aparecer ya resuelta. */
+function contarHasta(elemento, valor) {
+    const destino = Number(valor);
+    if (QUIETO || !Number.isFinite(destino) || destino === 0) {
+        elemento.textContent = valor;
+        return;
+    }
+
+    const DURACION = 650;
+    const arranque = performance.now();
+
+    const paso = (ahora) => {
+        const t = Math.min(1, (ahora - arranque) / DURACION);
+        // desacelera al final: sube rapido y se acomoda
+        const suave = 1 - (1 - t) * (1 - t);
+        elemento.textContent = String(Math.round(destino * suave));
+        if (t < 1) requestAnimationFrame(paso);
+    };
+
+    elemento.textContent = '0';
+    requestAnimationFrame(paso);
+}
+
 // --- fichas de resumen --------------------------------------------------------
 
 function pintarFichas(totales) {
     const fichas = [
-        ['persona',  totales.participantes, 'participantes'],
-        ['tilde',    totales.aceptadas,     'resueltos'],
-        ['pergamino', totales.entregas,     'entregas'],
-        ['barras',   totales.rondas,        'rondas'],
+        ['persona',   totales.participantes, 'participantes'],
+        ['tilde',     totales.aceptadas,     'resueltos'],
+        ['pergamino', totales.entregas,      'entregas'],
+        ['barras',    totales.rondas,        'rondas'],
     ];
 
-    $('#fichas').innerHTML = fichas.map(([ico, valor, nombre]) => `
-        <div class="ficha">
-            <span class="icono-caja">${icono(ico, 20)}</span>
+    $('#fichas').innerHTML = fichas.map(([ico, valor, nombre], i) => `
+        <div class="ficha entra" style="--i:${i}">
+            <span class="icono-caja">${icono(ico, 32)}</span>
             <span>
-                <span class="ficha-valor">${esc(valor)}</span>
-                <span class="ficha-nombre">${esc(nombre)}</span>
+                <span class="ficha-valor" data-valor="${esc(valor)}">0</span>
+                <span class="rotulo">${esc(nombre)}</span>
             </span>
         </div>`).join('');
+
+    for (const valor of $('#fichas').querySelectorAll('.ficha-valor')) {
+        contarHasta(valor, valor.dataset.valor);
+    }
+}
+
+// --- podio --------------------------------------------------------------------
+
+/** Los tres primeros, fuera de la tabla. Es lo primero que mira cualquiera. */
+function pintarPodio(filas) {
+    const caja = $('#podio');
+    const top = filas.slice(0, 3);
+
+    // con menos de tres no hay podio que valga: queda mejor solo la tabla
+    if (top.length < 3) {
+        caja.hidden = true;
+        caja.innerHTML = '';
+        return;
+    }
+
+    caja.hidden = false;
+    caja.innerHTML = top.map((f, i) => `
+        <div class="escalon escalon-${i + 1} entra" style="--i:${i}"
+             tabindex="0" role="button" data-id="${esc(f.id)}"
+             aria-label="Puesto ${i + 1}: ${esc(f.nombre)}, ${esc(f.puntos)} puntos">
+            <span class="escalon-puesto">${i + 1}</span>
+            <span class="perove perove-${i === 0 ? 'jump' : 'idle'}"></span>
+            <span class="escalon-nombre" title="${esc(f.nombre)}">${esc(f.nombre)}</span>
+            <span class="escalon-puntos">${esc(f.puntos)}</span>
+            <span class="rotulo">${esc(f.resueltos)} resueltos</span>
+        </div>`).join('');
+
+    for (const escalon of caja.querySelectorAll('.escalon')) {
+        const abrir = () => abrirDetalle(escalon.dataset.id);
+        escalon.addEventListener('click', abrir);
+        escalon.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrir(); }
+        });
+    }
+
+    // el primero festeja con chispas cuando le pasan por encima
+    const campeon = caja.querySelector('.escalon-1');
+    campeon?.addEventListener('pointerenter', () => chispear(campeon, 8));
 }
 
 // --- tabla de posiciones ------------------------------------------------------
@@ -99,13 +194,15 @@ function pintarRanking(filas) {
         return;
     }
 
-    const cuerpo = filas.map((f) => `
-        <tr tabindex="0" data-id="${esc(f.id)}">
+    // los `data-rotulo` son los que se convierten en etiqueta cuando la tabla
+    // pasa a tarjetas en el celular (ver el bloque responsive de estilos.css)
+    const cuerpo = filas.map((f, i) => `
+        <tr tabindex="0" data-id="${esc(f.id)}" class="entra" style="--i:${Math.min(i, 12)}">
             <td><span class="puesto puesto-${f.puesto <= 3 ? f.puesto : 'n'}">${esc(f.puesto)}</span></td>
-            <td>${esc(f.nombre)}</td>
-            <td class="num"><strong>${esc(f.puntos)}</strong></td>
-            <td class="num">${esc(f.resueltos)}</td>
-            <td class="col-precision">
+            <td class="col-nombre">${esc(f.nombre)}</td>
+            <td class="num" data-rotulo="puntos"><strong>${esc(f.puntos)}</strong></td>
+            <td class="num" data-rotulo="resueltos">${esc(f.resueltos)}</td>
+            <td class="col-precision" data-rotulo="precision">
                 <span class="barra-precision" style="--relleno:${Math.round(f.precision * 100)}%"
                       title="${Math.round(f.precision * 100)}% de acierto"></span>
             </td>
@@ -142,7 +239,7 @@ async function abrirDetalle(id) {
     const panel = $('#detalle');
     panel.hidden = false;
     panel.innerHTML = '<p class="cargando">cargando</p>';
-    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    panel.scrollIntoView({ behavior: QUIETO ? 'auto' : 'smooth', block: 'nearest' });
 
     let p;
     try {
@@ -158,12 +255,12 @@ async function abrirDetalle(id) {
     const problemas = (p.problemas || []).map((pr) => `
         <span class="pastilla${pr.resuelto ? ' ok' : ''}"
               title="${pr.resuelto ? `${pr.puntos} puntos` : `${pr.intentos} intento(s)`}">
-            ${pr.resuelto ? icono('tilde', 12) : ''}${esc(pr.codigo)}
+            ${pr.resuelto ? icono('tilde', 16) : ''}${esc(pr.codigo)}
         </span>`).join('');
 
     panel.innerHTML = `
         <div class="detalle-cabecera">
-            <span class="icono-caja">${icono('persona', 24)}</span>
+            <span class="icono-caja">${icono('persona', 32)}</span>
             <span>
                 <h2>${esc(p.nombre)}</h2>
                 <span class="chico tenue">puesto ${esc(p.puesto ?? '-')} &middot;
@@ -182,7 +279,7 @@ async function abrirDetalle(id) {
 
 // --- ronda --------------------------------------------------------------------
 
-function tarjetaProblema(pr) {
+function tarjetaProblema(pr, i = 0) {
     const etiquetas = (pr.tags || [])
         .map((t) => `<span class="etiqueta">${esc(t)}</span>`).join('');
 
@@ -191,7 +288,8 @@ function tarjetaProblema(pr) {
         : 'todavia no lo intento nadie';
 
     return `
-        <article class="problema" tabindex="0" role="button"
+        <article class="problema dif-${pr.dificultad} entra" style="--i:${i}"
+                 tabindex="0" role="button"
                  aria-label="Ver el enunciado de ${esc(pr.codigo)}">
             <div class="problema-cabecera">
                 <span class="codigo-problema">${esc(pr.codigo)}</span>
@@ -201,7 +299,7 @@ function tarjetaProblema(pr) {
             <p class="chico tenue">${esc(pr.nombre_dificultad)} &middot; ${esc(pr.base)} puntos base</p>
             <p class="chico">${esc(tasa)}</p>
             ${etiquetas ? `<div class="etiquetas">${etiquetas}</div>` : ''}
-            <p class="chico ver-enunciado">ver el enunciado</p>
+            <p class="ver-enunciado">${icono('pergamino', 16)} ver el enunciado</p>
         </article>`;
 }
 
@@ -211,7 +309,8 @@ function abrirEnunciado(pr) {
     panel.hidden = false;
     panel.innerHTML = panelEnunciado(pr);
     panel.querySelector('.cerrar').addEventListener('click', () => { panel.hidden = true; });
-    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    panel.scrollIntoView({ behavior: QUIETO ? 'auto' : 'smooth', block: 'start' });
+    perove.anima('cast', 1200);
 }
 
 /** Hace clickeables las tarjetas de problema que haya dentro de un contenedor. */
@@ -247,13 +346,18 @@ function pintarRonda(ronda) {
         return;
     }
 
+    // menos de seis horas ya es "corre": la ficha cambia de color y late
+    const urgente = ronda.abierta && ronda.horas_restantes <= 6;
+
     caja.innerHTML = `
-        <div class="regresiva">
-            <span class="icono-caja">${icono('reloj', 24)}</span>
+        <div class="regresiva${urgente ? ' urgente' : ''}">
+            <span class="icono-caja">${icono(urgente ? 'rayo' : 'reloj', 32)}</span>
             <span>
                 <span class="regresiva-valor">${esc(duracion(ronda.horas_restantes))}</span>
-                <span class="ficha-nombre">${ronda.abierta ? 'para que cierre' : 'ronda cerrada'}</span>
+                <span class="rotulo">${ronda.abierta ? 'para que cierre' : 'ronda cerrada'}</span>
             </span>
+            <span class="barra-ronda" style="--queda:${porcentajeRestante(ronda)}%"
+                  role="img" aria-label="Queda ${porcentajeRestante(ronda)}% de la ronda"></span>
         </div>
 
         <div class="panel">
@@ -281,8 +385,8 @@ function pintarHistorial(rondas) {
         return;
     }
 
-    caja.innerHTML = rondas.map((r) => `
-        <div class="panel">
+    caja.innerHTML = rondas.map((r, i) => `
+        <div class="panel entra" style="--i:${i}">
             <div class="problema-cabecera">
                 <h2>Ronda ${esc(r.numero)}</h2>
                 <span class="etiqueta">${r.abierta ? 'abierta' : 'cerrada'}</span>
@@ -310,13 +414,17 @@ function pintarDificultades(dificultades) {
 function activarPestanias() {
     const pestanias = [...document.querySelectorAll('.pestania')];
 
-    const seleccionar = (elegida) => {
+    const seleccionar = (elegida, saltar = true) => {
         for (const p of pestanias) {
             const activa = p === elegida;
             p.setAttribute('aria-selected', String(activa));
             document.getElementById(p.getAttribute('aria-controls')).hidden = !activa;
         }
         location.hash = elegida.id.replace('tab-', '');
+        // la pestania elegida se centra sola cuando la barra scrollea en el celular
+        elegida.scrollIntoView({ block: 'nearest', inline: 'center',
+                                behavior: QUIETO ? 'auto' : 'smooth' });
+        if (saltar) perove.festeja();
     };
 
     for (const p of pestanias) {
@@ -334,12 +442,14 @@ function activarPestanias() {
 
     // permite compartir un link directo a una seccion
     const inicial = desdeHash();
-    if (inicial) seleccionar(inicial);
+    if (inicial) seleccionar(inicial, false);
 }
 
 // --- arranque -----------------------------------------------------------------
 
 async function cargar() {
+    perove.trabaja();
+
     try {
         const [resumen, ranking, historial] = await Promise.all([
             traer('/api/resumen'),
@@ -351,19 +461,34 @@ async function cargar() {
         pintarFichas(resumen.totales);
         pintarDificultades(resumen.dificultades);
         pintarRonda(resumen.ronda_actual);
+        pintarPodio(ranking.filas);
         pintarRanking(ranking.filas);
         pintarHistorial(historial.rondas);
+
+        marcarPulso(true, resumen.ronda_actual?.abierta ? 'ronda abierta' : 'en linea');
+        perove.descansa();
     } catch (error) {
         mostrarError(error.message);
+        marcarPulso(false, 'sin conexion');
         // dejamos las secciones en un estado legible, no en "cargando" para siempre
+        pintarPodio([]);
         pintarRanking([]);
         pintarRonda(null);
         pintarHistorial([]);
     }
 }
 
+iniciarFondo();
+perove.iniciarCompaniero();
 activarPestanias();
 cargar();
+
+// el Perove de la cabecera saluda cuando le pasan por encima
+$('#perove-marca')?.closest('.marca')?.addEventListener('pointerenter', () => {
+    const marca = $('#perove-marca');
+    marca.className = 'perove perove-wave';
+    setTimeout(() => { marca.className = 'perove perove-idle'; }, 1200);
+});
 
 if (REFRESCO_MS > 0) {
     setInterval(() => {
