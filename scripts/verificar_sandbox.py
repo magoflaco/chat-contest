@@ -156,6 +156,7 @@ def main() -> int:
     print("-" * 88)
 
     fallos = 0
+    detalles_ie: list[str] = []
     tmp = RAIZ / "var" / "verificacion"
     tmp.mkdir(parents=True, exist_ok=True)
 
@@ -170,9 +171,14 @@ def main() -> int:
             fuente = tmp / "ataque.py"
             fuente.write_text(ataque.codigo, encoding="utf-8")
             try:
-                veredicto = judge.juzgar(fuente, problema).veredicto
+                resultado = judge.juzgar(fuente, problema)
+                veredicto = resultado.veredicto
+                # un IE es un fallo NUESTRO, no una defensa: hay que poder ver por que
+                if veredicto == "IE":
+                    detalles_ie.append(f"{ataque.nombre}: {resultado.detalle}")
             except judge.ErrorJuez as e:
-                veredicto = f"ERR({e})"[:10]
+                veredicto = "ERR"
+                detalles_ie.append(f"{ataque.nombre}: {e}")
 
         ok = veredicto in ataque.esperados
         if not ok:
@@ -181,6 +187,14 @@ def main() -> int:
               f"{'ok' if ok else 'FALLO -> ' + ataque.explicacion}")
 
     print("-" * 88)
+
+    if detalles_ie:
+        print("\nEl juez devolvio IE, que es un error NUESTRO y no una defensa:")
+        for d in detalles_ie:
+            print(f"  - {d}")
+        print("\nSi todos los IE son de permisos, el contenedor no puede leer el")
+        print("directorio de trabajo. Ver _abrir_permisos() en core/contest/judge.py.")
+
     if fallos:
         print(f"\n{fallos} de {len(ATAQUES)} ataques NO fueron contenidos. "
               "NO desplegar hasta resolverlo.")

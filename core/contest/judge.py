@@ -15,6 +15,7 @@ de codigo para ejecutar y comparar.
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import tempfile
@@ -123,12 +124,38 @@ def _ejecutar(fuente: Path, problema: Problema, casos, trabajo: Path, solo_sampl
     }
     (trabajo / "manifiesto.json").write_text(json.dumps(manifiesto), encoding="utf-8")
 
+    if docker:
+        _abrir_permisos(trabajo)
+
     # techo global: si un problema tiene 30 casos de 2s, el contenedor entero no
     # puede tardar mas que eso mas un margen de arranque
     techo_seg = (problema.tiempo_ms * len(casos) + config.juez.overhead_ms * 2) / 1000.0
 
     crudo = _correr_docker(trabajo, techo_seg) if docker else _correr_local(trabajo, techo_seg)
     return _juzgar_salidas(crudo, problema, casos, solo_samples)
+
+
+def _abrir_permisos(trabajo: Path) -> None:
+    """Hace legible el directorio de trabajo para el usuario del contenedor.
+
+    En Linux, `mkdtemp()` crea el directorio con modo 0700 y propietario el usuario
+    que corre el core. El contenedor corre como uid 10001 (sin privilegios, a
+    proposito), asi que sin esto no puede leer ni el manifiesto ni los casos, y todo
+    da IE.
+
+    En Docker Desktop para Windows y Mac el bind mount pasa por una capa de
+    traduccion que ignora los permisos, asi que el problema **no se ve en
+    desarrollo**: aparece recien en Linux, o sea en la CI y en el servidor.
+
+    Se abre solo lectura y ejecucion; nada queda escribible para terceros.
+    """
+    try:
+        os.chmod(trabajo, 0o755)
+        for hijo in trabajo.rglob("*"):
+            os.chmod(hijo, 0o755 if hijo.is_dir() else 0o644)
+    except OSError as e:
+        # en Windows chmod es casi un no-op; si falla, no vale la pena abortar
+        print(f"[juez] no se pudieron ajustar los permisos de {trabajo}: {e}")
 
 
 def _correr_docker(trabajo: Path, techo_seg: float) -> dict:

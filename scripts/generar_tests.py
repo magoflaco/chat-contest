@@ -84,6 +84,12 @@ def _correr(script: Path, *, args: list[str] | None = None, entrada: str = "") -
 
 
 def generar(directorio: Path, cantidad: int, verbose: bool = True) -> int:
+    if es_borrador(directorio):
+        # un borrador trae los casos de su fuente original; regenerarlos los borraria
+        if verbose:
+            print(f"  {directorio.name}: es borrador, se deja como esta")
+        return 0
+
     generador = directorio / "generador.py"
     solucion = directorio / "solucion.py"
 
@@ -133,12 +139,32 @@ def generar(directorio: Path, cantidad: int, verbose: bool = True) -> int:
     return escritos
 
 
+def es_borrador(directorio: Path) -> bool:
+    """True si el problema esta marcado `borrador: true`.
+
+    Los borradores estan a medio terminar (tipicamente recien importados, sin
+    enunciado propio ni solucion de referencia). El cargador ya los deja fuera del
+    banco, asi que verificarlos aca solo produciria ruido en la CI.
+    """
+    yml = directorio / "problema.yaml"
+    if not yml.is_file():
+        return False
+    try:
+        datos = yaml.safe_load(yml.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError:
+        return False
+    return bool(datos.get("borrador", False))
+
+
 def verificar_samples(directorio: Path) -> list[str]:
     """Comprueba que la solucion de referencia reproduzca los samples del enunciado.
 
     Un sample que no coincide con la solucion es el error mas comun al escribir un
     problema, y el mas frustrante para quien lo intenta resolver.
     """
+    if es_borrador(directorio):
+        return []
+
     solucion = directorio / "solucion.py"
     if not solucion.is_file():
         return [f"{directorio.name}: falta solucion.py"]
