@@ -63,27 +63,36 @@ LINEA_AYUDA = "_las entregas van por privado_"
          ayuda="Como se calculan los puntos y como se rankea.",
          categoria="General")
 def cmd_reglas(ctx: Contexto) -> str:
+    from ..format import COLOR_DIFICULTAD
+
     tabla = "\n".join(
-        f"  {n} {NOMBRE_DIFICULTAD[n]:<11} {BASE_POR_DIFICULTAD[n]:>4} pts"
+        f"{COLOR_DIFICULTAD[n]} {NOMBRE_DIFICULTAD[n]} · {BASE_POR_DIFICULTAD[n]} pts"
         for n in sorted(BASE_POR_DIFICULTAD)
     )
     return "\n".join([
         fmt.titulo("como se puntua"),
         "",
-        "*puntos = base x tiempo x intentos*",
+        "*puntos = base × tiempo × intentos*",
         "",
-        "*base* segun dificultad:",
-        f"```{tabla}```",
+        "*Base segun dificultad*",
+        tabla,
         "",
-        "*tiempo:* de 1.00 al abrir la ronda a 0.65 al cerrar.",
-        "resolver temprano vale mas, pero tarde siempre suma.",
+        "*Tiempo* ⏳",
+        "de 1.00 al abrir la ronda a 0.65 al cerrar.",
+        "resolver temprano vale mas, pero entregar tarde",
+        "sigue sumando mucho mas que no entregar.",
         "",
-        "*intentos:* -15% por cada envio rechazado, con piso en 0.40.",
-        "los errores de sintaxis (CE) no penalizan.",
+        "*Intentos* 🔁",
+        "-15% por cada envio rechazado, con piso en 0.40.",
+        "los errores de sintaxis no penalizan.",
         "",
-        "reenviar nunca te baja el puntaje: se guarda tu mejor resultado.",
+        "reenviar nunca te baja el puntaje:",
+        "se guarda tu mejor resultado.",
         "",
-        f"desempate: mas puntos, mas resueltos, menos tiempo total.",
+        "*Desempate*",
+        "mas puntos → mas resueltos → menos tiempo total.",
+        "",
+        f"_detalle completo en_ {config.web_url}",
     ])
 
 
@@ -96,23 +105,24 @@ def cmd_info(ctx: Contexto) -> str:
 
     if ronda:
         lineas += [
-            f"ronda *{ronda.numero}* abierta",
-            f"cierra en {fmt.duracion(ronda.horas_restantes * 3600)}  ({fmt.fecha_local(ronda.fin)})",
-            f"{len(ronda.problemas)} problemas: " + ", ".join(p.codigo for p in ronda.problemas),
+            f"📅 ronda *{ronda.numero}* abierta",
+            f"⏳ cierra en {fmt.duracion(ronda.horas_restantes * 3600)}"
+            f"  ({fmt.fecha_local(ronda.fin)})",
+            f"📝 {', '.join(p.codigo for p in ronda.problemas)}",
         ]
     else:
         lineas.append("no hay ninguna ronda abierta ahora mismo.")
 
     stats = db.uno(
-        "SELECT (SELECT COUNT(*) FROM usuarios) AS gente, "
+        "SELECT (SELECT COUNT(DISTINCT usuario) FROM entregas) AS gente, "
         "(SELECT COUNT(*) FROM entregas) AS entregas, "
         "(SELECT COUNT(*) FROM entregas WHERE veredicto = 'AC') AS ac"
     )
     if stats:
-        lineas += ["", f"{stats['gente']} participantes, {stats['entregas']} entregas, "
-                       f"{stats['ac']} aceptadas"]
+        lineas += ["", f"👥 {stats['gente']} participantes",
+                   f"📤 {stats['entregas']} entregas · ✅ {stats['ac']} aceptadas"]
 
-    lineas += ["", f"escribi {PREFIJO}help para ver que podes hacer."]
+    lineas += ["", f"🏆 {config.web_url}", f"_escribi_ {PREFIJO}help _para ver que podes hacer_"]
     return "\n".join(lineas)
 
 
@@ -121,3 +131,34 @@ def cmd_info(ctx: Contexto) -> str:
 def cmd_jid(ctx: Contexto) -> str:
     """Sirve para configurar GRUPO_JID en el .env sin tener que adivinarlo."""
     return f"```{ctx.jid}```\ncopialo a GRUPO_JID en el .env si este es el grupo del club."
+
+
+@comando("miid", "quiensoy", uso="!miid",
+         ayuda="Muestra como te identifica WhatsApp (util para configurar admins).",
+         categoria="General", oculto=True)
+def cmd_miid(ctx: Contexto) -> str:
+    """Sirve para configurar ADMINS sin adivinar.
+
+    WhatsApp esta migrando de numeros de telefono a LIDs, y segun el chat una
+    persona puede llegar identificada de una forma o de la otra. Si un admin no
+    es reconocido, con esto se ve exactamente que poner en el .env.
+    """
+    from .. import identidades
+
+    alias = identidades.alias_de(ctx.numero)
+    lineas = [
+        fmt.titulo("tu identidad"),
+        f"principal: `{ctx.numero}`",
+    ]
+    if alias:
+        otros = [a for a in alias if a != ctx.numero]
+        if otros:
+            lineas.append("tambien conocido como: " + ", ".join(f"`{a}`" for a in otros))
+    lineas += [
+        "",
+        f"admin: {'si' if ctx.es_admin else 'no'}",
+        "",
+        "_para que alguien sea admin, su identidad principal tiene que estar_",
+        "_en ADMINS del .env, separada por comas_",
+    ]
+    return "\n".join(lineas)

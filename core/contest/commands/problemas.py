@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from .. import ai, format as fmt, ranking
+from .. import ai, format as fmt, ranking, wa
+from ..config import config
 from ..problems import Problema
 from ..rounds import buscar_problema, ronda_actual
 from ..scoring import base_de
@@ -11,37 +12,49 @@ from . import PREFIJO, Contexto, comando
 
 def _enunciado_completo(codigo: str, problema: Problema, dificultad: int, cerrada: bool) -> str:
     lineas = [
-        f"*{codigo}*  {problema.titulo}",
-        fmt.dificultad(dificultad) + f" - {base_de(dificultad)} pts",
-        f"limites: {problema.tiempo_ms} ms, {problema.memoria_mb} MB",
+        f"*{codigo}* · {problema.titulo}",
+        f"{fmt.dificultad(dificultad)} · {base_de(dificultad)} pts",
+        f"⏱️ {problema.tiempo_ms} ms · 💾 {problema.memoria_mb} MB",
     ]
     if problema.tags:
-        lineas.append(f"temas: {', '.join(problema.tags)}")
-    lineas += ["", fmt.LINEA, "", problema.enunciado]
+        lineas.append(f"🏷️ {', '.join(problema.tags)}")
+    # el enunciado esta en markdown (asi se ve bien en la web y en GitHub);
+    # WhatsApp no lo entiende, hay que traducirlo
+    lineas += ["", fmt.LINEA, "", fmt.enunciado(problema.enunciado)]
 
     samples = problema.samples[:2]
     if samples:
-        lineas += ["", fmt.LINEA, "", "*ejemplos*"]
+        lineas += ["", fmt.LINEA, "", "*EJEMPLOS*"]
         for i, caso in enumerate(samples, start=1):
             entrada = caso.leer_entrada().strip()
             salida = caso.leer_esperado().strip()
-            lineas += [f"\nentrada {i}:", f"```{entrada[:300]}```",
-                       f"salida {i}:", f"```{salida[:300]}```"]
+            lineas += [f"\n_entrada {i}_", f"```{entrada[:300]}```",
+                       f"_salida {i}_", f"```{salida[:300]}```"]
 
     if problema.tiene_subtareas:
-        lineas += ["", "*subtareas*"]
+        lineas += ["", "*SUBTAREAS*"]
         for s in problema.subtareas:
-            lineas.append(f"  {s['id']}: {s.get('peso', 0)}% - {s.get('descripcion', '')}")
+            # la descripcion suele traer los limites ("N <= 1000000"), asi que
+            # tambien hay que evitar que WhatsApp los tome por telefonos
+            descripcion = wa.proteger_numeros(str(s.get("descripcion", "")))
+            lineas.append(f"  • *{s['id']}* ({s.get('peso', 0)}%) {descripcion}")
+        lineas.append("_cada una suma su parte solo si pasan todos sus casos_")
 
     atribucion = problema.fuente.atribucion()
     if atribucion:
         lineas += ["", f"_{atribucion}_"]
 
     if cerrada:
-        lineas += ["", "_esta ronda ya cerro: podes practicarlo pero no suma puntos._"]
+        lineas += ["", "_esta ronda ya cerro: podes practicarlo, pero no suma puntos_"]
     else:
-        lineas += ["", f"para entregarlo: {PREFIJO}entrega {codigo} <tu codigo>",
-                   f"para probarlo sin gastar intentos: {PREFIJO}probar {codigo} <tu codigo>"]
+        lineas += [
+            "", fmt.LINEA, "",
+            f"📤 entregar   {PREFIJO}entrega {codigo}",
+            f"🧪 probar     {PREFIJO}probar {codigo}",
+            f"💡 pista      {PREFIJO}pista {codigo}",
+            "",
+            f"_tambien en_ {config.web_url}",
+        ]
 
     return fmt.recortar("\n".join(lineas), 3500)
 

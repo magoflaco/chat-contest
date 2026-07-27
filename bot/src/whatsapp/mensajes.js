@@ -120,7 +120,7 @@ function esLid(jid) {
  *
  * @returns {{principal: string, alternos: string[]}}
  */
-function remitenteDe(mensaje) {
+async function remitenteDe(mensaje, sock) {
     const clave = mensaje.key || {};
     const enGrupo = String(clave.remoteJid || '').endsWith('@g.us');
 
@@ -128,12 +128,28 @@ function remitenteDe(mensaje) {
     const alterno = enGrupo ? clave.participantAlt : clave.remoteJidAlt;
 
     const candidatos = [primario, alterno].filter(Boolean);
-    // el telefono primero; si solo hay LID, se usa el LID
+
+    // Baileys no siempre manda el `Alt`. Cuando solo llega el LID, se lo
+    // preguntamos a su propio almacen de mapeos, que es el que mantiene la
+    // correspondencia LID <-> telefono a partir de lo que informa el servidor.
+    if (!candidatos.some((j) => !esLid(j))) {
+        const lid = candidatos.find(esLid);
+        const tienda = sock?.signalRepository?.lidMapping;
+        if (lid && tienda?.getPNForLID) {
+            try {
+                const pn = await tienda.getPNForLID(lid);
+                if (pn) candidatos.push(pn);
+            } catch (error) {
+                console.error('[mensajes] no se pudo resolver el LID:', error.message);
+            }
+        }
+    }
+
+    // el telefono primero; si de verdad no hay, se usa el LID
     const telefono = candidatos.find((j) => !esLid(j));
     const principal = numeroDe(telefono || candidatos[0]);
 
-    const alternos = candidatos
-        .map(numeroDe)
+    const alternos = [...new Set(candidatos.map(numeroDe))]
         .filter((n) => n && n !== principal);
 
     return { principal, alternos };

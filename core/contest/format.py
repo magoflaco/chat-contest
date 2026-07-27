@@ -1,24 +1,36 @@
 """Armado de los textos que salen por WhatsApp.
 
-Regla de oro del proyecto: **nada de emojis**. Para marcar cosas usamos texto,
-separadores y sangrias. Se ve mas prolijo en monoespaciado y no depende de que el
-celular del otro tenga la fuente.
+Sobre los emojis: la web **no lleva ninguno**, ahi los iconos son SVG pixel art
+propios. En WhatsApp es al reves: no hay forma de dibujar un icono, el texto es
+todo lo que hay, y un `[###--]` en una pantalla de celular se ve mal. Asi que en
+los mensajes del bot se usan unos pocos emojis, elegidos para que signifiquen
+algo y no de adorno.
 
-WhatsApp entiende `*negrita*`, `_cursiva_`, `~tachado~` y ```monoespaciado```.
+WhatsApp solo entiende `*negrita*` (un asterisco), `_cursiva_`, `~tachado~` y
+```bloque```. Nada de markdown. La conversion de los enunciados la hace `wa.py`.
 """
 
 from __future__ import annotations
 
 from datetime import datetime, timezone
 
+from . import wa
 from .config import config
 from .judge import DESCRIPCION_VEREDICTO
 from .scoring import NOMBRE_DIFICULTAD
 
-LINEA = "-" * 28
+LINEA = "─" * 22
 
-#: marca de puesto sin emoji, estilo tabla de competencia
-MEDALLAS = {1: "1o", 2: "2o", 3: "3o"}
+#: un color por dificultad, los mismos que usa la web
+COLOR_DIFICULTAD = {1: "🟢", 2: "🔵", 3: "🟣", 4: "🟠", 5: "🔴"}
+
+#: el veredicto se lee de un vistazo antes de leer el texto
+ICONO_VEREDICTO = {
+    "AC": "✅", "WA": "❌", "TLE": "⏱️", "MLE": "💾",
+    "RE": "💥", "CE": "✏️", "PE": "📐", "SEC": "🚫", "IE": "⚙️",
+}
+
+MEDALLAS = {1: "🥇", 2: "🥈", 3: "🥉"}
 
 
 def titulo(texto: str) -> str:
@@ -26,9 +38,9 @@ def titulo(texto: str) -> str:
 
 
 def dificultad(nivel: int) -> str:
-    """Barra de dificultad en texto: [###--] Media."""
+    """Dificultad como color + nombre. Reemplaza al viejo [###--]."""
     n = max(1, min(5, int(nivel)))
-    return f"[{'#' * n}{'-' * (5 - n)}] {NOMBRE_DIFICULTAD.get(n, '?')}"
+    return f"{COLOR_DIFICULTAD[n]} {NOMBRE_DIFICULTAD.get(n, '?')}"
 
 
 def duracion(segundos: float) -> str:
@@ -68,44 +80,48 @@ def recortar(texto: str, maximo: int = 1400) -> str:
 
 
 def tabla_ranking(filas, *, hasta: int = 15, resaltar: str = "") -> str:
-    """Tabla de posiciones en monoespaciado, alineada."""
+    """Tabla de posiciones.
+
+    Se arma con lineas sueltas y no con un bloque monoespaciado alineado: en un
+    celular angosto el monoespaciado se corta o se achica tanto que no se lee.
+    """
     if not filas:
-        return "todavia no hay nadie en la tabla. se el primero."
+        return "Todavia no hay nadie en la tabla. Se el primero."
 
     visibles = filas[:hasta]
-    ancho_nombre = max((len(_nombre_corto(f)) for f in visibles), default=6)
-    ancho_nombre = min(max(ancho_nombre, 6), 14)
-
     lineas = []
+
     for f in visibles:
-        marca = ">" if f.numero == resaltar else " "
-        puesto = MEDALLAS.get(f.puesto, f"{f.puesto}o")
-        nombre = _nombre_corto(f).ljust(ancho_nombre)[:ancho_nombre]
-        lineas.append(f"{marca}{puesto:>3} {nombre} {f.puntos:>5}  {f.resueltos}ok")
+        marca = MEDALLAS.get(f.puesto, f"{f.puesto}.")
+        nombre = (f.nombre or f"...{f.numero[-4:]}").strip()
+        if f.numero == resaltar:
+            nombre = f"*{nombre}* ←"
+        lineas.append(f"{marca} {nombre} — {f.puntos} pts · {f.resueltos} ok")
 
-    cuerpo = "```" + "\n".join(lineas) + "```"
-
-    # si quien pregunta no entro en el corte, se le agrega su fila igual
+    # si quien pregunta quedo fuera del corte, se le agrega su fila igual
     if resaltar and not any(f.numero == resaltar for f in visibles):
         mia = next((f for f in filas if f.numero == resaltar), None)
         if mia:
-            cuerpo += (f"\n```{'>':>1}{str(mia.puesto) + 'o':>3} "
-                       f"{_nombre_corto(mia).ljust(ancho_nombre)[:ancho_nombre]} "
-                       f"{mia.puntos:>5}  {mia.resueltos}ok```")
+            lineas.append("⋯")
+            lineas.append(f"{mia.puesto}. *{mia.nombre or '...' + mia.numero[-4:]}* ← "
+                          f"— {mia.puntos} pts · {mia.resueltos} ok")
 
+    cuerpo = "\n".join(lineas)
     if len(filas) > hasta:
-        cuerpo += f"\n_y {len(filas) - hasta} mas_"
-    return cuerpo
-
-
-def _nombre_corto(fila) -> str:
-    return (fila.nombre or f"...{fila.numero[-4:]}").strip()
+        cuerpo += f"\n\n_y {len(filas) - hasta} mas_"
+    return wa.proteger_numeros(cuerpo)
 
 
 def veredicto(v: str) -> str:
-    """Linea de veredicto: sigla + que significa."""
-    return f"*{v}* - {DESCRIPCION_VEREDICTO.get(v, v)}"
+    """Linea de veredicto: icono + sigla + que significa."""
+    icono = ICONO_VEREDICTO.get(v, "")
+    return f"{icono} *{v}* — {DESCRIPCION_VEREDICTO.get(v, v)}"
 
 
 def problema_corto(codigo: str, titulo_problema: str, nivel: int, base: int) -> str:
-    return f"*{codigo}* {titulo_problema}\n   {dificultad(nivel)} - {base} pts"
+    return f"*{codigo}* · {titulo_problema}\n{dificultad(nivel)} · {base} pts"
+
+
+def enunciado(texto: str) -> str:
+    """Convierte el markdown de un enunciado al formato de WhatsApp."""
+    return wa.desde_markdown(texto)

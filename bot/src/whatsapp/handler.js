@@ -68,7 +68,7 @@ async function manejar(sock, mensaje) {
     if (!item) return;
 
     const esGrupo = jid.endsWith('@g.us');
-    const { principal: numero, alternos } = remitenteDe(mensaje);
+    const { principal: numero, alternos } = await remitenteDe(mensaje, sock);
     const nombre = mensaje.pushName || '';
 
     // fotos y audios: contestamos una sola vez y por privado, para no ensuciar el grupo

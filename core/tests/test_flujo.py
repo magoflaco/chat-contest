@@ -203,10 +203,30 @@ def test_help_lista_comandos():
     assert r and "entrega" in r.texto and "rank" in r.texto
 
 
-def test_help_no_muestra_emojis():
-    """Requisito del proyecto: nada de emojis en ningun texto."""
+def test_los_mensajes_no_llevan_markdown():
+    """WhatsApp no entiende markdown: los ## y ** saldrian literales.
+
+    Los emojis SI se permiten en los mensajes del bot (en la web no, ahi los
+    iconos son SVG propios): en un celular el texto es todo lo que hay, y un
+    [###--] se ve mal.
+    """
     r = commands.despachar(_ctx("!help"))
-    assert all(ord(c) < 0x2190 for c in r.texto), "aparecio un emoji o simbolo grafico"
+    assert "##" not in r.texto, "encabezado markdown, WhatsApp lo muestra literal"
+    assert "**" not in r.texto, "negrita markdown, en WhatsApp es un solo asterisco"
+
+
+def test_el_enunciado_se_convierte_para_whatsapp(ronda):
+    """El banco esta en markdown; al mandarlo por WhatsApp hay que traducirlo."""
+    codigo = ronda.problemas[0].codigo
+    r = commands.despachar(_ctx(f"!problema {codigo}"))
+
+    assert "##" not in r.texto, "quedo un encabezado markdown sin convertir"
+    assert "**" not in r.texto, "quedo negrita markdown sin convertir"
+    # los numeros largos se protegen para que WhatsApp no los enlace como telefono
+    import re
+    from contest.wa import JUNTADOR
+    for corrida in re.findall(r"\d{7,}", r.texto.replace(JUNTADOR, "")):
+        assert JUNTADOR in r.texto, f"numero sin proteger: {corrida}"
 
 
 def test_comando_inexistente_sugiere_el_parecido():
@@ -246,7 +266,8 @@ def test_ronda_muestra_los_problemas(ronda):
 def test_problema_muestra_el_enunciado(ronda):
     codigo = ronda.problemas[0].codigo
     r = commands.despachar(_ctx(f"!problema {codigo}"))
-    assert r and "Entrada" in r.texto and "Salida" in r.texto
+    # los encabezados del markdown se convierten a *MAYUSCULAS* para WhatsApp
+    assert r and "ENTRADA" in r.texto.upper() and "SALIDA" in r.texto.upper()
 
 
 def test_entrega_multilinea_se_parsea_bien(ronda):
