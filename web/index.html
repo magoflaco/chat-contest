@@ -87,7 +87,6 @@ print(input())</pre>
 
     <!-- ------------------------------------------------------------ RONDA -->
     <section class="seccion" id="seccion-ronda" role="tabpanel" aria-labelledby="tab-ronda" hidden>
-        <div class="panel" id="enunciado" hidden></div>
         <div id="ronda-actual"><p class="cargando">cargando</p></div>
     </section>
 
@@ -156,6 +155,13 @@ print(input())</pre>
     </footer>
 
 </div>
+
+<!-- El enunciado se abre encima de la pagina, venga de la seccion Ronda o de
+     Rondas. Es un <dialog> nativo: trae solo el fondo oscurecido, el foco
+     atrapado adentro y el cierre con Escape, sin una linea de JavaScript. -->
+<dialog id="visor" class="visor" aria-label="Enunciado del problema">
+    <div class="visor-caja"></div>
+</dialog>
 
 <script src="config.js"></script>
 <script type="module" src="app.js"></script>

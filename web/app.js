@@ -303,14 +303,48 @@ function tarjetaProblema(pr, i = 0) {
         </article>`;
 }
 
-/** Abre el panel con el enunciado completo de un problema. */
+/** Abre el enunciado completo en una ventana encima de la pagina.
+ *
+ *  Va en un <dialog> y no en un panel dentro de la seccion para que se pueda
+ *  abrir desde cualquier lado: la ronda actual, el historial, o lo que venga.
+ *  Ademas el enunciado es largo y compite con el resto del contenido; encima de
+ *  todo se lee sin que la tarjeta que tocaste quede empujada a mitad de pantalla.
+ */
 function abrirEnunciado(pr) {
-    const panel = $('#enunciado');
-    panel.hidden = false;
-    panel.innerHTML = panelEnunciado(pr);
-    panel.querySelector('.cerrar').addEventListener('click', () => { panel.hidden = true; });
-    panel.scrollIntoView({ behavior: QUIETO ? 'auto' : 'smooth', block: 'start' });
+    const visor = $('#visor');
+    const caja = visor.querySelector('.visor-caja');
+
+    caja.innerHTML = panelEnunciado(pr);
+    caja.querySelector('.cerrar').addEventListener('click', () => visor.close());
+
+    visor.showModal();
+    // si antes se miro un enunciado largo, el visor arranca donde quedo
+    caja.scrollTop = 0;
     perove.anima('cast', 1200);
+}
+
+/** Prepara el visor: cerrar tocando afuera y devolver el foco al salir. */
+function prepararVisor() {
+    const visor = $('#visor');
+
+    // el click en el fondo oscurecido llega al propio <dialog>, no a la caja
+    visor.addEventListener('click', (e) => {
+        if (e.target === visor) visor.close();
+    });
+
+    // el <dialog> modal ya bloquea la interaccion de atras, pero en varios
+    // navegadores el fondo se sigue pudiendo scrollear con la rueda
+    visor.addEventListener('close', () => {
+        document.body.classList.remove('con-visor');
+        perove.descansa();
+    });
+    visor.addEventListener('cancel', () => document.body.classList.remove('con-visor'));
+
+    const abrir = visor.showModal.bind(visor);
+    visor.showModal = () => {
+        document.body.classList.add('con-visor');
+        abrir();
+    };
 }
 
 /** Hace clickeables las tarjetas de problema que haya dentro de un contenedor. */
@@ -480,6 +514,7 @@ async function cargar() {
 
 iniciarFondo();
 perove.iniciarCompaniero();
+prepararVisor();
 activarPestanias();
 cargar();
 

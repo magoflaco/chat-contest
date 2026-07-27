@@ -199,15 +199,18 @@ body::after {
     transition: transform 900ms cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
-/* el div externo hace el parallax, el ::before hace el flote.
- * separarlos evita que las dos animaciones se peleen por `transform` */
+/* el div externo hace el parallax y el espanto, el ::before hace el flote.
+ * separarlos evita que las dos animaciones se peleen por `transform`.
+ *
+ * --mx/--my los pone fondo.js una sola vez para todos (el parallax), y --ex/--ey
+ * por decoracion (cuanto la aparto el puntero). Se suman en el mismo translate. */
 .deco {
     position: absolute;
     left: var(--x);
     top: var(--y);
-    transform: translate3d(calc(var(--mx, 0px) * var(--z)),
-                           calc(var(--my, 0px) * var(--z)), 0);
-    transition: transform 700ms cubic-bezier(0.22, 0.61, 0.36, 1);
+    transform: translate3d(calc(var(--mx, 0px) * var(--z) + var(--ex, 0px)),
+                           calc(var(--my, 0px) * var(--z) + var(--ey, 0px)), 0);
+    transition: transform 420ms cubic-bezier(0.22, 0.61, 0.36, 1);
     will-change: transform;
 }
 
@@ -222,7 +225,10 @@ body::after {
     background-size: calc(var(--lado) * 8) var(--lado);
     background-position: calc(var(--lado) * var(--n) * -1) 0;
     image-rendering: pixelated;
-    opacity: var(--opacidad, 0.5);
+    /* --claridad la baja fondo.js cuando el puntero se acerca: apartarse y
+     * desvanecerse a la vez es lo que se lee como "despejar el camino" */
+    opacity: calc(var(--opacidad, 0.5) * var(--claridad, 1));
+    transition: opacity 420ms ease-out;
     animation: flotar var(--dur, 6s) ease-in-out var(--retraso, 0s) infinite alternate;
 }
 
@@ -805,6 +811,10 @@ tbody tr:focus-visible { outline: 3px solid var(--azul); outline-offset: -3px; }
 }
 
 .codigo-problema {
+    flex: none;
+    /* "R1-A" no se parte nunca: en la cabecera del visor, apretado entre el
+     * titulo y el boton de cerrar, el navegador lo cortaba en "R1-" y "A" */
+    white-space: nowrap;
     font-weight: 700;
     letter-spacing: 0.1em;
     background: var(--contorno);
@@ -915,7 +925,102 @@ tbody tr:focus-visible { outline: 3px solid var(--azul); outline-offset: -3px; }
 /* PANELES DE DETALLE                                                         */
 /* ========================================================================== */
 
-.detalle[hidden], #enunciado[hidden] { display: none; }
+.detalle[hidden] { display: none; }
+
+/* ========================================================================== */
+/* VISOR DE ENUNCIADOS                                                        */
+/* ========================================================================== */
+
+/* El <dialog> ocupa toda la ventana y es transparente: asi el click que cae
+ * fuera de la caja le llega a el (y app.js lo usa para cerrar) en vez de
+ * perderse. El fondo oscurecido de verdad lo pinta ::backdrop. */
+.visor {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    padding: clamp(8px, 3vw, 40px);
+    border: 0;
+    background: transparent;
+    overflow: hidden;
+}
+
+.visor[open] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.visor::backdrop {
+    /* el mismo azul del contorno de Perove, no un negro cualquiera */
+    background: rgba(20, 18, 31, 0.62);
+    animation: aparecer-fondo 200ms steps(4) both;
+}
+
+@keyframes aparecer-fondo { from { opacity: 0; } }
+
+/* la caja es un panel comun, con su riel de color y su relieve */
+.visor-caja {
+    width: min(760px, 100%);
+    max-height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--superficie);
+    border: 3px solid var(--contorno);
+    /* sin riel propio: lo lleva la cabecera pegajosa, que es la que queda
+     * arriba de todo mientras se scrollea el enunciado */
+    box-shadow: var(--relieve-alto);
+    padding: calc(var(--u) * 6) clamp(14px, 3vw, 28px) clamp(18px, 3vw, 30px);
+    /* el visor tiene su propio acento: no hereda el de la seccion desde la que
+     * se abrio, porque el <dialog> cuelga del body */
+    --acento: var(--azul-luz);
+    --tinte: var(--magia);
+    animation: entrar-visor 220ms steps(4) both;
+}
+
+@keyframes entrar-visor {
+    from { opacity: 0; transform: translateY(24px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* el boton de cerrar queda fijo arriba de todo: en un enunciado largo, tener
+ * que volver al principio para cerrarlo es una molestia gratuita */
+.visor-caja .detalle-cabecera {
+    position: sticky;
+    top: calc(var(--u) * -6);
+    z-index: 2;
+    margin: calc(var(--u) * -6) clamp(-14px, -3vw, -28px) calc(var(--u) * 4);
+    padding: calc(var(--u) * 5) clamp(14px, 3vw, 28px) calc(var(--u) * 3);
+    background: var(--superficie);
+    box-shadow: var(--riel);
+    border-bottom: 3px solid var(--superficie-2);
+}
+
+/* mientras el visor esta abierto la pagina de atras no se mueve */
+body.con-visor { overflow: hidden; }
+
+@media (max-width: 620px) {
+    /* en el celular ocupa toda la pantalla: partir un enunciado en una ventanita
+     * con margenes es desperdiciar la mitad del ancho */
+    .visor { padding: 0; }
+    .visor-caja {
+        width: 100%;
+        height: 100%;
+        max-height: 100%;
+        border-width: 0;
+        box-shadow: none;
+    }
+
+    /* la cabecera no puede partirse en dos filas: en una pantalla de 844 px de
+     * alto, cada renglon fijo que se come son lineas de enunciado que no se ven */
+    .visor-caja .detalle-cabecera {
+        flex-wrap: nowrap;
+        gap: calc(var(--u) * 2);
+    }
+    .visor-caja .detalle-cabecera > span:not(.codigo-problema) { min-width: 0; }
+    .visor-caja .cerrar { flex: none; align-self: flex-start; }
+}
 
 .detalle-cabecera {
     display: flex;
@@ -1108,7 +1213,7 @@ tbody tr:focus-visible { outline: 3px solid var(--azul); outline-offset: -3px; }
     border-top: 3px solid var(--superficie-2);
 }
 
-#enunciado .detalle-cabecera .codigo-problema { align-self: flex-start; }
+.visor-caja .detalle-cabecera .codigo-problema { align-self: center; }
 
 /* --- los tres pasos para entrar --------------------------------------------
  * En la columna lateral van uno abajo del otro; cuando no hay columna (tablet)

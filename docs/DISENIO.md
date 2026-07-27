@@ -53,7 +53,7 @@ prestado de otra página.
 | `app.js` | Pide los datos y pinta la página |
 | `iconos.js` | Iconos pixel art propios, dibujados sobre una grilla de 16×16 |
 | `enunciados.js` | Convierte el markdown de los enunciados a HTML |
-| `fondo.js` | Las decoraciones flotantes y el parallax del mouse |
+| `fondo.js` | Las decoraciones flotantes, el parallax y el espanto del mouse |
 | `perove.js` | El compañero de la esquina: reacciona y tira tips |
 
 ## Colores
@@ -78,6 +78,45 @@ cuadriculado de 16×16, anotá las coordenadas de cada pixel y sumalo al objeto
 
 (En los mensajes de WhatsApp sí se usan emojis: ahí no hay CSS ni SVG, y sin
 ellos los mensajes quedan ilegibles.)
+
+## El visor de enunciados
+
+El enunciado completo se abre en un `<dialog>` que cuelga del `<body>`, no en un
+panel dentro de una sección. Eso es lo que permite abrirlo desde la ronda actual
+y desde el historial con el mismo código, y trae gratis el fondo oscurecido, el
+foco atrapado adentro y el cierre con Escape.
+
+Dos detalles del CSS que no son obvios:
+
+- El `<dialog>` ocupa toda la ventana y es **transparente**. Así el click que cae
+  fuera de la caja le llega a él (y `app.js` compara `e.target === visor` para
+  cerrar) en vez de perderse. El oscurecido real lo pinta `::backdrop`.
+- La cabecera es `position: sticky` y lleva el riel de color. En un enunciado
+  largo, tener que volver arriba para encontrar el botón de cerrar es una
+  molestia gratuita.
+
+Abajo de 620 px la caja pasa a pantalla completa: partir un enunciado en una
+ventanita con márgenes desperdicia la mitad del ancho del teléfono.
+
+## El fondo
+
+`fondo.js` hace tres cosas a la vez sobre las mismas decoraciones:
+
+1. **Flotar.** Cada una sube y baja con su propia duración, desfasada al azar
+   para que no se muevan todas juntas. Es una animación CSS sobre `::before`.
+2. **Parallax.** El contenedor pone `--mx` / `--my` una sola vez y cada
+   decoración los multiplica por su profundidad `--z`.
+3. **Espantarse.** Cuando el puntero entra en un radio de 150 px, la decoración
+   se aparta en la dirección contraria y se desvanece. Apartarse *y* aclararse
+   a la vez es lo que se lee como "despejar el camino"; con solo una de las dos
+   parece que rebotan.
+
+El punto 2 va en el `transform` del div y el 1 en el del `::before`: si
+compartieran propiedad, una pisaría a la otra.
+
+Todo se calcula dentro de un solo `requestAnimationFrame` y los centros salen de
+la composición, no de `getBoundingClientRect`, para no forzar al navegador a
+recalcular el layout en cada movimiento del mouse.
 
 ## Movimiento
 
