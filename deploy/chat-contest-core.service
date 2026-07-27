@@ -1,0 +1,48 @@
+# Core de Chat Contest: API, juez, scheduler.
+#
+# Este VPS comparte recursos con reporithm-api, que es un servicio importante y
+# tiene prioridad. Por eso:
+#
+#   - MemoryMax acota lo que puede crecer este proceso.
+#   - OOMScoreAdjust=500 le dice al kernel que si hay que matar algo por falta de
+#     memoria, empiece por aca. reporithm queda en 0, o sea mucho mas protegido.
+#
+# El limite de memoria NO incluye a los contenedores del juez: esos los lanza
+# Docker y viven en su propio cgroup, con su propio --memory.
+
+[Unit]
+Description=Chat Contest - core (API, juez, scheduler)
+Documentation=https://github.com/magoflaco/chat-contest
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+User=contest
+Group=contest
+WorkingDirectory=/home/contest/chat-contest/core
+ExecStart=/home/contest/chat-contest/.venv/bin/python -m contest.cli servir
+Restart=always
+RestartSec=10
+
+# --- convivencia con el resto del servidor ---
+MemoryMax=280M
+MemoryHigh=240M
+CPUWeight=50
+OOMScoreAdjust=500
+
+# --- endurecimiento ---
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=tmpfs
+BindPaths=/home/contest/chat-contest
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

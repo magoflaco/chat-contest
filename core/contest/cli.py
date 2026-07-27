@@ -110,9 +110,12 @@ def _calibrar(args) -> int:
         print("el banco esta vacio")
         return 1
 
-    print(f"midiendo {len(banco)} problemas con el backend '{config.juez.backend}'...\n")
-    print(f"{'problema':<32} {'tardo':>8} {'limite':>8} {'uso':>7}")
-    print("-" * 60)
+    factor = config.juez.factor_tiempo
+    print(f"midiendo {len(banco)} problemas con el backend '{config.juez.backend}', "
+          f"factor actual {factor}\n")
+    # "declarado" es lo que dice el YAML; "efectivo" es lo que aplica el juez aca
+    print(f"{'problema':<32} {'tardo':>8} {'declarado':>10} {'efectivo':>9} {'uso':>6}")
+    print("-" * 70)
 
     peor = 0.0
     peor_slug = ""
@@ -128,28 +131,35 @@ def _calibrar(args) -> int:
             print(f"{slug:<32} error: {e}")
             continue
 
+        efectivo = max(1, round(p.tiempo_ms * factor))
+
         if r.veredicto == "TLE":
-            # no sabemos cuanto tarda de verdad, solo que no entro
-            print(f"{slug:<32} {'TLE':>8} {p.tiempo_ms:>7}ms {'>100%':>7}")
-            uso = 1.5                       # estimacion conservadora
+            # no sabemos cuanto tardaria de verdad, solo que no entro
+            print(f"{slug:<32} {'TLE':>8} {p.tiempo_ms:>8}ms {efectivo:>7}ms {'>100%':>6}")
+            uso_declarado = 1.5 * factor      # estimacion conservadora
         else:
-            uso = r.tiempo_ms / p.tiempo_ms if p.tiempo_ms else 0
-            print(f"{slug:<32} {r.tiempo_ms:>6}ms {p.tiempo_ms:>7}ms {uso:>6.0%}")
+            # el uso se mide contra el limite DECLARADO, que es lo que el factor
+            # tiene que compensar. Contra el efectivo siempre daria comodo.
+            uso_declarado = r.tiempo_ms / p.tiempo_ms if p.tiempo_ms else 0
+            uso_efectivo = r.tiempo_ms / efectivo if efectivo else 0
+            print(f"{slug:<32} {r.tiempo_ms:>6}ms {p.tiempo_ms:>8}ms "
+                  f"{efectivo:>7}ms {uso_efectivo:>5.0%}")
 
         medidos += 1
-        if uso > peor:
-            peor, peor_slug = uso, slug
+        if uso_declarado > peor:
+            peor, peor_slug = uso_declarado, slug
 
     if not medidos:
         print("\nno se pudo medir nada")
         return 1
 
-    # queremos que el peor caso use como mucho el 50% de su limite
+    # queremos que el peor caso use como mucho el 50% de su limite declarado
     sugerido = max(1.0, round(peor / 0.5 * 2) / 2)
 
-    print("-" * 60)
-    print(f"\nel mas ajustado es '{peor_slug}', usando el {peor:.0%} de su limite.")
-    print(f"factor actual: {config.juez.factor_tiempo}")
+    print("-" * 70)
+    print(f"\nel mas ajustado es '{peor_slug}': tarda el {peor:.0%} de su limite declarado, "
+          f"o sea el {peor / factor:.0%} del efectivo.")
+    print(f"factor actual: {factor}   sugerido: {sugerido}")
 
     if sugerido > config.juez.factor_tiempo:
         print(f"\nponé esto en el .env de esta maquina:\n\n    JUDGE_TIME_FACTOR={sugerido}\n")

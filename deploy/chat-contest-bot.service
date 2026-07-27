@@ -1,0 +1,39 @@
+# Gateway de WhatsApp de Chat Contest.
+#
+# Baileys mantiene estado de la sesion en memoria y es la parte mas pesada del
+# stack, por eso tiene el techo mas alto. Igual que el core, se marca como
+# candidato preferente del OOM killer para que reporithm nunca sea el elegido.
+
+[Unit]
+Description=Chat Contest - gateway de WhatsApp
+Documentation=https://github.com/magoflaco/chat-contest
+After=network-online.target chat-contest-core.service
+Wants=network-online.target
+Requires=chat-contest-core.service
+
+[Service]
+Type=simple
+User=contest
+Group=contest
+WorkingDirectory=/home/contest/chat-contest/bot
+ExecStart=/usr/bin/node index.js
+Restart=always
+RestartSec=15
+
+MemoryMax=320M
+MemoryHigh=260M
+CPUWeight=40
+OOMScoreAdjust=700
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=tmpfs
+BindPaths=/home/contest/chat-contest
+ProtectKernelTunables=true
+ProtectKernelModules=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target
