@@ -142,6 +142,10 @@ a {
  * animaba en los juegos de verdad: no hay GIF, no hay JS, y cada frame aparece
  * de golpe en vez de interpolarse. */
 .perove {
+    /* sin esto el span queda inline y width/height no aplican: se ve en la
+     * cabecera porque ahi es hijo de un flex (que lo blockifica), pero en los
+     * estados vacios desaparecia */
+    display: block;
     --lado: 40px;                 /* tamanio nativo de un frame */
     --escala: 2;                  /* SIEMPRE entero, o el pixel art se rompe */
     width: calc(var(--lado) * var(--escala));
