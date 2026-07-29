@@ -212,8 +212,23 @@ def similitud(a: set[int], b: set[int]) -> float:
 
 
 def hash_codigo(fuente: str) -> str:
-    """Hash del codigo normalizado. Sirve para detectar reenvios identicos."""
-    return hashlib.sha256(" ".join(normalizar_tokens(fuente)).encode()).hexdigest()
+    """Hash del codigo tal como lo escribio quien lo mando.
+
+    Ojo con la tentacion de usar `normalizar_tokens` aca: parece la version
+    "buena" del hash y es exactamente lo que no queremos. Esa normalizacion es
+    para *detectar copias*, asi que borra comentarios y reemplaza todo numero
+    por 0 a proposito -- si no, cambiar `1000000007` por `1000000009` alcanzaria
+    para disimular un plagio.
+
+    Usada como identidad, hace que corregir una constante mal escrita cuente
+    como "mandaste exactamente el mismo codigo" y el sistema rechace el arreglo.
+    Que es, de lejos, la correccion mas comun que hace alguien que arranca.
+
+    Lo unico que se ignora aca son los espacios al final de cada linea, que los
+    pone el chat y no la persona.
+    """
+    lineas = [l.rstrip() for l in fuente.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
+    return hashlib.sha256("\n".join(lineas).strip().encode("utf-8")).hexdigest()
 
 
 def buscar_parecidos(fuente: str, problema_ronda_id: int, usuario: str) -> list[tuple[str, float]]:

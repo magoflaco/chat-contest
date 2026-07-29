@@ -16,6 +16,20 @@ from . import PREFIJO, Contexto, comando
 def cmd_revisar(ctx: Contexto) -> str:
     arg = ctx.arg(0).strip()
 
+    # Pegar el codigo aca es lo primero que hace todo el mundo, porque !entrega y
+    # !probar funcionan asi. Pero !revisar mira una entrega ya juzgada, no texto
+    # suelto: sin este aviso revisa la entrega vieja y contesta algo que no tiene
+    # nada que ver con lo que la persona esta mirando en la pantalla.
+    if "\n" in ctx.args.strip():
+        codigo = arg.upper() if arg else "<codigo>"
+        return "\n".join([
+            "!revisar mira tu ultima entrega, no el codigo que pegues aca.",
+            "",
+            f"si querés que revise lo que acabas de escribir, mandalo con "
+            f"{PREFIJO}entrega {codigo} y despues {PREFIJO}revisar {codigo}.",
+            f"si querés probarlo sin gastar un intento: {PREFIJO}probar {codigo}",
+        ])
+
     if not arg:
         entrega = ultima_entrega(ctx.numero)
         if not entrega:

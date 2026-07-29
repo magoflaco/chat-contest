@@ -50,11 +50,28 @@ class Veredicto:
         return self.veredicto == "AC"
 
 
+#: Caracteres de ancho cero que llegan pegados al copiar de WhatsApp. El
+#: primero lo ponemos nosotros: `wa.proteger_numeros` mete un WORD JOINER
+#: adentro de los numeros largos para que WhatsApp no los convierta en links de
+#: telefono. Es invisible, asi que quien copia `1000000007` del enunciado a su
+#: codigo se lleva uno puesto sin verlo y Python le contesta
+#: "invalid non-printable character U+2060", que no le dice nada a nadie.
+_INVISIBLES = str.maketrans({
+    "⁠": None,   # word joiner, el que ponemos nosotros
+    "​": None,   # zero width space
+    "‌": None,   # zero width non-joiner
+    "‍": None,   # zero width joiner
+    "﻿": None,   # BOM, tipico de copiar desde un editor de Windows
+    " ": " ",    # espacio duro: se ve igual que un espacio y rompe la indentacion
+})
+
+
 def limpiar_fuente(texto: str) -> str:
     """Saca el markdown que WhatsApp o el editor del chico dejan pegado."""
     m = _CERCA.match(texto)
     if m:
         texto = m.group(1)
+    texto = texto.translate(_INVISIBLES)
     return texto.replace("\r\n", "\n").replace("\r", "\n").strip() + "\n"
 
 

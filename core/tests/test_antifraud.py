@@ -124,16 +124,92 @@ def test_los_comentarios_no_cambian_la_huella():
             == antifraud.normalizar_tokens(sin_comentarios))
 
 
-def test_hash_ignora_nombres_y_formato():
+# --- el hash de identidad ------------------------------------------------------
+#
+# Es el que decide si mostrar "ya mandaste exactamente este codigo". Tiene que
+# responder a "es el mismo texto?" y nada mas. Antes usaba la normalizacion
+# antiplagio, que borra comentarios y reemplaza todo numero por 0, y eso dejaba
+# a alguien sin poder corregir una constante mal escrita: el sistema le decia
+# que era el mismo codigo y le rechazaba el arreglo.
+
+
+def test_hash_distingue_una_constante_corregida():
+    """El caso real que rompio: R1-B, modulo con un cero de menos."""
+    malo = "print(n % 100000007)"
+    bueno = "print(n % 1000000007)"
+    assert antifraud.hash_codigo(malo) != antifraud.hash_codigo(bueno)
+
+
+def test_hash_distingue_un_comentario_agregado():
+    a = "print(n)"
+    assert antifraud.hash_codigo(a) != antifraud.hash_codigo("# intento 2\n" + a)
+
+
+def test_hash_distingue_nombres_distintos():
     a = "def f(x):\n    return x + 1"
-    b = "def sumar_uno(valor):\n        return valor + 1"
-    assert antifraud.hash_codigo(a) == antifraud.hash_codigo(b)
+    b = "def sumar_uno(valor):\n    return valor + 1"
+    assert antifraud.hash_codigo(a) != antifraud.hash_codigo(b)
 
 
 def test_hash_distingue_logica_distinta():
     assert antifraud.hash_codigo("print(1 + 2)") != antifraud.hash_codigo("print(1 * 2)")
 
 
+def test_hash_ignora_lo_que_pone_el_chat_y_no_la_persona():
+    a = "n = int(input())\nprint(n)"
+    assert antifraud.hash_codigo(a) == antifraud.hash_codigo("n = int(input())  \nprint(n)   ")
+    assert antifraud.hash_codigo(a) == antifraud.hash_codigo(a.replace("\n", "\r\n"))
+
+
+def test_el_mismo_reenvio_sigue_dando_igual():
+    """Lo que el hash si tiene que atajar: mandar dos veces lo mismo."""
+    a = "n = int(input())\nprint(n * 2)\n"
+    assert antifraud.hash_codigo(a) == antifraud.hash_codigo(a)
+
+
+def test_la_deteccion_de_copias_sigue_ignorando_nombres_y_numeros():
+    """El hash cambio; la huella antiplagio NO tiene que cambiar.
+
+    Ahi si queremos que renombrar variables o tocar una constante no alcance
+    para disimular un plagio.
+    """
+    a = "def f(x):\n    return x + 1"
+    b = "def sumar_uno(valor):\n        return valor + 7"
+    assert antifraud.normalizar_tokens(a) == antifraud.normalizar_tokens(b)
+
+
 def test_codigo_muy_corto_no_genera_huellas():
     """Sin esto, 'print(1)' se parece a 'print(2)' y marcaria a medio club."""
     assert antifraud.huellas("print(1)") == set()
+
+
+# --- lo que llega pegado desde WhatsApp ----------------------------------------
+
+
+def test_el_word_joiner_del_enunciado_no_rompe_la_entrega():
+    """Los numeros largos del enunciado llevan un U+2060 para que WhatsApp no los
+    convierta en links de telefono. Es invisible: quien copia `1000000007` se lo
+    lleva puesto y Python le contesta "invalid non-printable character U+2060".
+    """
+    from contest.submissions import limpiar_fuente
+
+    pegado = "n = int(input())\nprint(n % 1\u2060000000007)"
+    with pytest.raises(SyntaxError):
+        compile(pegado, "<entrega>", "exec")
+
+    compile(limpiar_fuente(pegado), "<entrega>", "exec")
+
+
+@pytest.mark.parametrize("invisible", ["\u2060", "\u200b", "\u200c", "\u200d", "\ufeff"])
+def test_se_sacan_los_caracteres_de_ancho_cero(invisible):
+    from contest.submissions import limpiar_fuente
+
+    assert invisible not in limpiar_fuente(f"print({invisible}1)")
+
+
+def test_el_espacio_duro_no_rompe_la_indentacion():
+    """Se ve igual que un espacio comun y da IndentationError."""
+    from contest.submissions import limpiar_fuente
+
+    pegado = "if True:\n\u00a0\u00a0\u00a0\u00a0print(1)"
+    compile(limpiar_fuente(pegado), "<entrega>", "exec")
