@@ -318,6 +318,49 @@ cd /home/contest/chat-contest/bot && node index.js    # escaneá el QR
 sudo systemctl start chat-contest-bot
 ```
 
+### Cambiar el bot de número de teléfono
+
+Igual que arriba, pero **guardando** la sesión vieja en vez de borrarla: si el
+teléfono nuevo no llega a escanear a tiempo, con mover la carpeta de vuelta el
+bot vuelve a estar donde estaba.
+
+```bash
+sudo systemctl stop chat-contest-bot
+cd /home/contest/chat-contest/bot
+mv auth_info_baileys auth_info_baileys.viejo
+node index.js                                    # escaneá con el teléfono nuevo
+# Ctrl+C y
+sudo systemctl start chat-contest-bot
+```
+
+Tres cosas que hay que hacer después, y que no dan error hasta que alguien las
+necesita:
+
+1. **Sumar el número nuevo al grupo del club.** `GRUPO_JID` no cambia, pero una
+   cuenta que no es miembro no puede publicar: las rondas se quedan encoladas.
+2. **Avisarle al club.** Las entregas van por privado a un número que nadie
+   tiene agendado; sin el aviso parece que el bot está caído.
+3. **Revisar `ADMINS`.** Son los números de las personas que administran, no el
+   del bot: si cambiaste de cuenta pero no de organizadores, no se toca.
+
+Cuando el bot esté conectado, la sesión vieja ya no sirve para nada:
+`rm -rf auth_info_baileys.viejo`.
+
+### Si el bot no llega ni a mostrar el QR
+
+Si el log corta con un **405** en pleno handshake, WhatsApp está rechazando la
+versión del cliente. El bot le pregunta la versión a WhatsApp en cada arranque
+(`fetchLatestWaWebVersion`), así que lo normal es que esto se arregle solo; ver
+`bot/src/whatsapp/conexion.js` para por qué no se usa la función equivalente de
+Baileys, que miente.
+
+Si se repite, es que Baileys mismo quedó viejo:
+
+```bash
+cd /home/contest/chat-contest/bot && npm update @whiskeysockets/baileys
+sudo systemctl restart chat-contest-bot
+```
+
 ---
 
 ## Checklist antes de abrir la primera ronda de verdad
