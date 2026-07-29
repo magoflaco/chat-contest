@@ -19,9 +19,11 @@ cd "$BOT" || exit 1
 
 terminar() {
     echo
-    # creds.json existe desde el primer segundo; lo que dice si el telefono
-    # llego a confirmar es la marca de registrado
-    if grep -qE '"registered":[[:space:]]*true' "$BOT/auth_info_baileys/creds.json" 2>/dev/null; then
+    # creds.json existe desde el primer segundo, asi que su presencia no dice
+    # nada. Lo que aparece recien cuando el telefono confirma es "me", con el
+    # JID de la cuenta. Ojo con "registered": suena a lo que buscamos y no lo
+    # es, se queda en false hasta en una sesion vinculada y andando.
+    if grep -qE '"me":[[:space:]]*\{' "$BOT/auth_info_baileys/creds.json" 2>/dev/null; then
         echo "vinculado. levantando el servicio..."
         echo "la sesion anterior queda en $BOT/$RESPALDO; borrala cuando"
         echo "compruebes que el bot responde."
