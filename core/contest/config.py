@@ -112,16 +112,62 @@ class ConfigAntiTrampa:
     similitud_umbral: float = field(default_factory=lambda: _decimal("SIMILITUD_UMBRAL", 0.82))
 
 
+#: Suplentes para cuando el modelo principal no esta disponible. En
+#: build.nvidia.com la capacidad se agota **por modelo**, no por cuenta: por eso
+#: reintentar el mismo devuelve el mismo 503 y lo unico que destraba es cambiar.
+#:
+#: Son de tres proveedores distintos a proposito. Cuando el pool de uno se
+#: llena, los otros dos siguen contestando; una cadena de tres modelos del mismo
+#: proveedor se cae entera junta.
+#:
+#: Elegidos midiendo el caso real (explicar un TLE, ver `scripts/probar_modelos.py`),
+#: no por tamano. Los tres contestan en texto plano y en rioplatense, que es lo
+#: que se manda por WhatsApp.
+MODELOS_SUPLENTES = (
+    "nvidia/nemotron-3-super-120b-a12b",
+    "minimaxai/minimax-m3",
+)
+
+#: No usar: devuelven `content` en null y la respuesta en `reasoning_content`,
+#: que es el borrador de lo que piensan y no algo para mandarle a un chico del
+#: club. El codigo lo trata como respuesta vacia y pasa al siguiente, asi que
+#: ponerlos solo gasta el tiempo que alguien esta esperando.
+MODELOS_SIN_CONTENIDO = (
+    "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+    "nvidia/llama-3.3-nemotron-super-49b-v1",
+    "stepfun-ai/step-3.7-flash",
+)
+
+#: Tampoco: escribe **negrita** de markdown, y WhatsApp marca con un solo
+#: asterisco. Los dobles llegan literales al chat.
+MODELOS_CON_MARKDOWN = (
+    "nvidia/nemotron-3-ultra-550b-a55b",
+)
+
+
 @dataclass(frozen=True)
 class ConfigIA:
     api_key: str = field(default_factory=lambda: _txt("NVIDIA_API_KEY"))
     base_url: str = field(default_factory=lambda: _txt("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1"))
-    modelo: str = field(default_factory=lambda: _txt("NVIDIA_MODEL", "meta/llama-3.3-70b-instruct"))
-    timeout_seg: int = 120
+    modelo: str = field(default_factory=lambda: _txt("NVIDIA_MODEL", "z-ai/glm-5.2"))
+    suplentes: tuple[str, ...] = field(
+        default_factory=lambda: tuple(_lista("NVIDIA_MODELOS_SUPLENTES")) or MODELOS_SUPLENTES)
+
+    #: Presupuesto TOTAL de una consulta, sumando los intentos con cada modelo.
+    #: Tiene que quedar comodo abajo de CORE_TIMEOUT_MS (120 s), que es cuando
+    #: el gateway de WhatsApp se rinde: si nos pasamos, el mensaje de error que
+    #: explica lo que fallo no llega y el usuario ve un "no responde" pelado.
+    timeout_seg: int = 75
 
     @property
     def habilitada(self) -> bool:
         return bool(self.api_key)
+
+    @property
+    def modelos(self) -> tuple[str, ...]:
+        """El principal y despues los suplentes, sin repetir."""
+        orden = (self.modelo, *self.suplentes)
+        return tuple(dict.fromkeys(m for m in orden if m))
 
 
 @dataclass(frozen=True)

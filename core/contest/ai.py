@@ -16,12 +16,26 @@ de romper.
 from __future__ import annotations
 
 import json
+import logging
+import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
 
 from .config import config
 from .problems import Problema
+
+log = logging.getLogger(__name__)
+
+# Cuanto esperamos como maximo una sola llamada. Cuando el modelo esta sano
+# contesta en menos de un segundo; si tarda 30 no esta pensando, esta encolado
+# detras de otros y conviene probar con otro antes que seguir esperando.
+TIMEOUT_INTENTO_SEG = 30
+
+# Reintentar el mismo modelo saturado no lleva a ningun lado, pero probar otro
+# si: la capacidad en build.nvidia.com se agota por modelo, no por cuenta.
+# Estos codigos son "este modelo no, ahora": saturado, caido, o retirado.
+CODIGOS_PARA_CAMBIAR_DE_MODELO = {404, 410, 429, 500, 502, 503, 504}
 
 
 class ErrorIA(Exception):
@@ -38,18 +52,11 @@ def disponible() -> bool:
     return config.ia.habilitada
 
 
-def _chat(mensajes: list[dict], *, temperatura: float = 0.3, max_tokens: int = 1200,
-          timeout_seg: int | None = None) -> Respuesta:
-    """Una llamada al endpoint /chat/completions. Lanza `ErrorIA` si algo falla.
-
-    `timeout_seg` sobreescribe el de la config: generar un problema entero tarda
-    bastante mas que explicar un veredicto.
-    """
-    if not config.ia.habilitada:
-        raise ErrorIA("la IA no esta configurada (falta NVIDIA_API_KEY en el .env)")
-
+def _una_llamada(modelo: str, mensajes: list[dict], *, temperatura: float,
+                 max_tokens: int, timeout_seg: float) -> Respuesta:
+    """Una llamada al endpoint /chat/completions. Lanza `ErrorIA` si algo falla."""
     cuerpo = json.dumps({
-        "model": config.ia.modelo,
+        "model": modelo,
         "messages": mensajes,
         "temperature": temperatura,
         "max_tokens": max_tokens,
@@ -68,24 +75,83 @@ def _chat(mensajes: list[dict], *, temperatura: float = 0.3, max_tokens: int = 1
     )
 
     try:
-        with urllib.request.urlopen(pedido, timeout=timeout_seg or config.ia.timeout_seg) as r:
+        with urllib.request.urlopen(pedido, timeout=timeout_seg) as r:
             datos = json.loads(r.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         detalle = e.read().decode("utf-8", errors="replace")[:300]
-        raise ErrorIA(f"el modelo respondio {e.code}: {detalle}") from e
+        error = ErrorIA(f"el modelo respondio {e.code}: {detalle}")
+        error.codigo = e.code               # type: ignore[attr-defined]
+        raise error from e
     except urllib.error.URLError as e:
         raise ErrorIA(f"no se pudo conectar con el modelo: {e.reason}") from e
     except (TimeoutError, json.JSONDecodeError) as e:
         raise ErrorIA(f"respuesta invalida del modelo: {e}") from e
 
     try:
-        texto = datos["choices"][0]["message"]["content"].strip()
+        mensaje = datos["choices"][0]["message"]
     except (KeyError, IndexError, TypeError) as e:
         raise ErrorIA("el modelo devolvio una respuesta con un formato inesperado") from e
 
+    # Los modelos de razonamiento dejan `content` en null y escriben en
+    # `reasoning_content`, que es pensar en voz alta y no una explicacion para
+    # mandarle a alguien. Los tomamos como vacios y seguimos con el siguiente.
+    texto = (mensaje.get("content") or "").strip() if isinstance(mensaje, dict) else ""
     if not texto:
         raise ErrorIA("el modelo devolvio una respuesta vacia")
-    return Respuesta(texto=texto, modelo=config.ia.modelo)
+    return Respuesta(texto=texto, modelo=modelo)
+
+
+def _hay_que_probar_otro_modelo(error: ErrorIA) -> bool:
+    """Si el problema es del modelo (saturado, caido, retirado) y no nuestro.
+
+    Un 401 o un 400 se repiten identicos en los cinco modelos: ahi cambiar no
+    arregla nada y solo gasta el tiempo que el usuario esta esperando.
+    """
+    codigo = getattr(error, "codigo", None)
+    if codigo is None:
+        return True                          # timeout o red: probamos con otro
+    return codigo in CODIGOS_PARA_CAMBIAR_DE_MODELO
+
+
+def _chat(mensajes: list[dict], *, temperatura: float = 0.3, max_tokens: int = 1200,
+          timeout_seg: int | None = None) -> Respuesta:
+    """Pide una respuesta, cambiando de modelo si el primero no esta disponible.
+
+    `timeout_seg` es el presupuesto **total**, no el de cada intento: generar un
+    problema entero tarda bastante mas que explicar un veredicto. Que sea total
+    importa porque del otro lado hay alguien esperando en WhatsApp y el gateway
+    corta a los 120 s; si nos pasamos de ahi, nuestro mensaje de error -- que
+    explica que paso -- se pierde y lo unico que ve es "el sistema no responde".
+    """
+    if not config.ia.habilitada:
+        raise ErrorIA("la IA no esta configurada (falta NVIDIA_API_KEY en el .env)")
+
+    presupuesto = timeout_seg or config.ia.timeout_seg
+    limite = time.monotonic() + presupuesto
+    ultimo: ErrorIA | None = None
+
+    for modelo in config.ia.modelos:
+        restante = limite - time.monotonic()
+        if restante <= 1:
+            break
+
+        try:
+            respuesta = _una_llamada(
+                modelo, mensajes, temperatura=temperatura, max_tokens=max_tokens,
+                timeout_seg=min(restante, TIMEOUT_INTENTO_SEG),
+            )
+        except ErrorIA as e:
+            ultimo = e
+            if not _hay_que_probar_otro_modelo(e):
+                raise
+            log.warning("modelo %s no disponible (%s), probando con el siguiente", modelo, e)
+            continue
+
+        if modelo != config.ia.modelo:
+            log.info("respondio %s en lugar de %s", modelo, config.ia.modelo)
+        return respuesta
+
+    raise ultimo or ErrorIA("no hay ningun modelo disponible en este momento")
 
 
 # --- !revisar ------------------------------------------------------------------
