@@ -320,18 +320,26 @@ sudo systemctl start chat-contest-bot
 
 ### Cambiar el bot de número de teléfono
 
-Igual que arriba, pero **guardando** la sesión vieja en vez de borrarla: si el
-teléfono nuevo no llega a escanear a tiempo, con mover la carpeta de vuelta el
-bot vuelve a estar donde estaba.
+Hay un script para esto, `deploy/vincular-bot.sh`. Se instala una sola vez:
 
 ```bash
-sudo systemctl stop chat-contest-bot
-cd /home/contest/chat-contest/bot
-mv auth_info_baileys auth_info_baileys.viejo
-node index.js                                    # escaneá con el teléfono nuevo
-# Ctrl+C y
-sudo systemctl start chat-contest-bot
+sudo install -m 755 deploy/vincular-bot.sh /usr/local/bin/vincular-bot
 ```
+
+Y después, desde tu máquina, con el teléfono nuevo en la mano:
+
+```bash
+ssh -i repo.key -t ubuntu@TU_VPS sudo vincular-bot
+```
+
+Escaneás el QR, y cuando el log diga `conectada como`, Ctrl+C: el script levanta
+el servicio solo.
+
+Es un script y no tres comandos sueltos por dos razones. Una, que el comando de
+una línea llevaba comillas dentro de comillas y desde PowerShell llegaba
+partido: el `cd` se perdía y el `mv` terminaba corriendo en otra carpeta. Y dos,
+que guarda la sesión anterior con la fecha en el nombre y **la restaura sola**
+si el escaneo no se completó, así cortar a la mitad no deja al bot sin cuenta.
 
 Tres cosas que hay que hacer después, y que no dan error hasta que alguien las
 necesita:
@@ -343,8 +351,8 @@ necesita:
 3. **Revisar `ADMINS`.** Son los números de las personas que administran, no el
    del bot: si cambiaste de cuenta pero no de organizadores, no se toca.
 
-Cuando el bot esté conectado, la sesión vieja ya no sirve para nada:
-`rm -rf auth_info_baileys.viejo`.
+Cuando compruebes que el bot responde con el número nuevo, la sesión vieja ya no
+sirve para nada: `rm -rf /home/contest/chat-contest/bot/auth_info_baileys.2*`.
 
 ### Si el bot no llega ni a mostrar el QR
 
